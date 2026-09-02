@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Dwarf } from "@/components/Dwarf";
 import { useShake, type ImpactKind } from "@/lib/useShake";
-import { pickVerdict, pickOne, IDLE_MUTTERS, PROTESTS, TONE_META, type Verdict, type Tone } from "@/lib/verdicts";
+import { pickVerdict, pickOne, CHARACTERS, TONE_META, type Verdict, type Tone } from "@/lib/verdicts";
 import { audio, haptic } from "@/lib/sound";
 import { speech } from "@/lib/speech";
 import { InstallPrompt } from "@/components/InstallPrompt";
@@ -27,11 +27,20 @@ const HIT_DAMAGE: Record<ImpactKind, number> = {
   slam: 0.34,
 };
 
+/** Gallery slide: the leaving dwarf exits one way, the arriving one enters the other. */
+const dwarfSlide = {
+  enter: (dir: number) => ({ x: dir > 0 ? "100%" : "-100%", opacity: 0 }),
+  center: { x: "0%", opacity: 1 },
+  exit: (dir: number) => ({ x: dir > 0 ? "-100%" : "100%", opacity: 0 }),
+};
+
 export default function Home() {
   const reducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
   const [verdict, setVerdict] = useState<Verdict | null>(null);
   const [mood, setMood] = useState<"idle" | "shaking" | "delivering">("idle");
-  const [damage, setDamage] = useState(0);
+  const [charIndex, setCharIndex] = useState(0);
+  const [swipeDir, setSwipeDir] = useState(1);
+  const [damages, setDamages] = useState<number[]>(() => CHARACTERS.map(() => 0));
   const [impactSeed, setImpactSeed] = useState(0);
   const [impactForce, setImpactForce] = useState(0);
   const [shake, setShake] = useState({ armed: verdict === null });
@@ -42,6 +51,9 @@ export default function Home() {
   const [speechSupported, setSpeechSupported] = useState(false);
   const [recentVerdicts, setRecentVerdicts] = useState<string[]>([]);
   const [protest, setProtest] = useState<string | null>(null);
+
+  const character = CHARACTERS[charIndex];
+  const damage = damages[charIndex];
   const protestTimeoutRef = useRef<number | undefined>(undefined);
   const speechTimeoutRef = useRef<number | undefined>(undefined);
 
@@ -59,10 +71,11 @@ export default function Home() {
           : style.fury < 0.25
             ? { yes: 1.7, maybe: 1.4, no: 0.7 }
             : undefined;
-      const next = pickVerdict(undefined, recentVerdicts, bias);
+      const next = pickVerdict(character.verdicts, recentVerdicts, bias);
       setVerdict(next);
       setMood("delivering");
-      setDamage((d) => Math.min(d + 1 + style.fury * 0.8, MAX_DAMAGE));
+      const dmgAdd = 1 + style.fury * 0.8;
+      setDamages((arr) => arr.map((v, i) => (i === charIndex ? Math.min(v + dmgAdd, MAX_DAMAGE) : v)));
       
       recentVerdicts.push(next.text);
       if (recentVerdicts.length > 8) recentVerdicts.shift();
@@ -74,7 +87,7 @@ export default function Home() {
       // Let the sting land first — he talks over its tail, not through it.
       window.clearTimeout(speechTimeoutRef.current);
       speechTimeoutRef.current = window.setTimeout(() => {
-        if (!audio.muted) speech.say(next.text);
+        if (!audio.muted) speech.say(next.text, character.voice);
       }, 420);
       
       setShake({ armed: false });
@@ -92,11 +105,11 @@ export default function Home() {
       setImpactSeed((x) => x + 1);
       setImpactForce(force);
       
-      setProtest(pickOne(PROTESTS));
+      setProtest(pickOne(character.protests));
       window.clearTimeout(protestTimeoutRef.current);
       protestTimeoutRef.current = window.setTimeout(() => setProtest(null), 280);
       
-      setDamage((d) => Math.min(d + HIT_DAMAGE[kind] * (0.6 + force * 0.8), MAX_DAMAGE));
+      setDamages((arr) => arr.map((v, i) => (i === charIndex ? Math.min(v + HIT_DAMAGE[kind] * (0.6 + force * 0.8), MAX_DAMAGE) : v)));
     },
   });
 
@@ -169,10 +182,82 @@ export default function Home() {
     speech.setEnabled(next);
   }, [speechOn]);
 
+  // ── Gallery: swipe (or arrows) to change which dwarf is in the jar ──────
+  const swipeStart = useRef<{ x: number; y: number } | null>(null);
+  const swipeMode = useRef<"none" | "swipe" | "shake">("none");
+
+  const changeCharacter = useCallback((dir: number) => {
+    window.clearTimeout(speechTimeoutRef.current);
+    speech.stop();
+    setSwipeDir(dir);
+    setCharIndex((i) => (i + dir + CHARACTERS.length) % CHARACTERS.length);
+    setVerdict(null);
+    setProtest(null);
+    setMood("idle");
+    setShake({ armed: true });
+  }, []);
+
+  // The chamber both shakes (small/jittery drags) and swipes (a decisive
+  // horizontal sweep). We watch the gesture and route it to the right one.
+  const onChamberPointerDown = useCallback(
+    (e: React.PointerEvent) => {
+      swipeStart.current = { x: e.clientX, y: e.clientY };
+      swipeMode.current = "none";
+      shakeApi.dragHandlers.onPointerDown(e);
+    },
+    [shakeApi],
+  );
+  const onChamberPointerMove = useCallback(
+    (e: React.PointerEvent) => {
+      const st = swipeStart.current;
+      if (st && swipeMode.current === "none") {
+        const dx = e.clientX - st.x;
+        const dy = e.clientY - st.y;
+        if (Math.abs(dx) > 30 && Math.abs(dx) > Math.abs(dy) * 1.4) swipeMode.current = "swipe";
+        else if (Math.hypot(dx, dy) > 12) swipeMode.current = "shake";
+      }
+      if (swipeMode.current !== "swipe") shakeApi.dragHandlers.onPointerMove(e);
+    },
+    [shakeApi],
+  );
+  const onChamberPointerUp = useCallback(
+    (e: React.PointerEvent) => {
+      const st = swipeStart.current;
+      shakeApi.dragHandlers.onPointerUp(e);
+      if (st && swipeMode.current === "swipe") {
+        const dx = e.clientX - st.x;
+        if (dx <= -55) changeCharacter(1);
+        else if (dx >= 55) changeCharacter(-1);
+      }
+      swipeStart.current = null;
+      swipeMode.current = "none";
+    },
+    [shakeApi, changeCharacter],
+  );
+
   return (
     <main className="h-full flex flex-col items-center px-3 py-3 relative overflow-hidden">
       {/* Radial gradient backdrop */}
       <div className="absolute inset-0 pointer-events-none bg-gradient-to-br from-transparent via-transparent to-black/20" />
+
+      {/* Gallery header: who's in the jar, and which of three. */}
+      <div className="w-full max-w-sm flex items-center justify-between gap-2 pb-2 z-10">
+        <button onClick={() => changeCharacter(-1)} aria-label="Previous dwarf" className="btn btn-ghost btn-sm px-2.5">‹</button>
+        <div className="text-center">
+          <div className="text-sm font-bold leading-none text-[var(--text-primary)]">
+            {character.name} <span className="font-medium text-[var(--text-secondary)]">{character.title}</span>
+          </div>
+          <div className="mt-1.5 flex justify-center gap-1.5">
+            {CHARACTERS.map((c, i) => (
+              <span
+                key={c.id}
+                className={`h-1.5 rounded-full transition-all ${i === charIndex ? "w-4 bg-[var(--text-primary)]" : "w-1.5 bg-[var(--text-secondary)]/40"}`}
+              />
+            ))}
+          </div>
+        </div>
+        <button onClick={() => changeCharacter(1)} aria-label="Next dwarf" className="btn btn-ghost btn-sm px-2.5">›</button>
+      </div>
 
       {/* Main chamber */}
       <motion.div
@@ -182,19 +267,35 @@ export default function Home() {
       >
         <div
           className="h-full w-full rounded-3xl border-4 border-gray-700 bg-gradient-to-br from-gray-900 to-gray-950 shadow-2xl relative overflow-hidden cursor-grab active:cursor-grabbing select-none touch-none"
-          {...shakeApi.dragHandlers}
+          onPointerDown={onChamberPointerDown}
+          onPointerMove={onChamberPointerMove}
+          onPointerUp={onChamberPointerUp}
         >
           {/* Glass inner glow */}
           <div className="absolute inset-0 rounded-3xl ring-1 ring-white/10 pointer-events-none" />
 
-          <Dwarf
-            intensity={shakeApi.intensity}
-            damage={damage}
-            mood={mood}
-            impactSeed={impactSeed}
-            impactForce={impactForce}
-            reducedMotion={reducedMotion}
-          />
+          <AnimatePresence mode="wait" custom={swipeDir} initial={false}>
+            <motion.div
+              key={character.id}
+              className="absolute inset-0"
+              custom={swipeDir}
+              variants={dwarfSlide}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ type: "spring", stiffness: 340, damping: 34 }}
+            >
+              <Dwarf
+                intensity={shakeApi.intensity}
+                damage={damage}
+                mood={mood}
+                impactSeed={impactSeed}
+                impactForce={impactForce}
+                skin={character.skin}
+                reducedMotion={reducedMotion}
+              />
+            </motion.div>
+          </AnimatePresence>
 
           {/* Impact flash */}
           <AnimatePresence>
@@ -291,7 +392,7 @@ export default function Home() {
       {/* Controls */}
       <div className="mt-6 flex items-center justify-center gap-2.5 w-full z-20">
         <button onClick={shakeApi.poke} disabled={!shake.armed} className="btn btn-primary">
-          Poke Dobby
+          Poke {character.name}
         </button>
         <button
           onClick={toggleMute}
@@ -306,8 +407,8 @@ export default function Home() {
           <button
             onClick={toggleSpeech}
             aria-pressed={speechOn}
-            title={speechOn ? "Dobby speaks his verdict" : "Dobby stays quiet"}
-            aria-label={speechOn ? "Silence Dobby's voice" : "Let Dobby speak"}
+            title={speechOn ? `${character.name} speaks his verdict` : `${character.name} stays quiet`}
+            aria-label={speechOn ? `Silence ${character.name}'s voice` : `Let ${character.name} speak`}
             className={`btn btn-icon ${speechOn ? "btn-icon-on" : "btn-icon-off"}`}
           >
             {speechOn ? "🗣️" : "🤐"}
@@ -353,7 +454,7 @@ export default function Home() {
                 </div>
                 <div className="min-w-0">
                   <h2 className="text-sm font-bold text-[var(--text-primary)]">
-                    Let Dobby feel the shaking
+                    Let {character.name} feel the shaking
                   </h2>
                   <p className="mt-1 text-xs leading-relaxed text-[var(--text-secondary)]">
                     He needs your motion sensors. Nothing leaves your phone.
@@ -381,7 +482,7 @@ export default function Home() {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5, duration: 0.6 }}
         >
-          {pickOne(IDLE_MUTTERS)}
+          {pickOne(character.idleMutters)}
         </motion.div>
       )}
     </main>

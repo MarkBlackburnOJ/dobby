@@ -15,6 +15,39 @@ export interface Verdict {
   weight?: number;
 }
 
+/** Palette + silhouette that skins the shared dwarf geometry per character. */
+export interface DwarfSkin {
+  hat: "cap" | "wizard" | "helm";
+  hatStops: [string, string, string];
+  tunic: [string, string];
+  beard: [string, string, string];
+  skin: [string, string, string];
+  nose: [string, string];
+  band: [string, string];
+  boot: [string, string];
+  cheek: string;
+  brow: string;
+  accent: string;
+}
+
+/** Text-to-speech colouring, so each dwarf sounds like itself. */
+export interface CharacterVoice {
+  pitch: number;
+  rate: number;
+}
+
+/** One dwarf in the gallery: a look, a voice, and its own bank of lines. */
+export interface Character {
+  id: string;
+  name: string;
+  title: string;
+  skin: DwarfSkin;
+  voice: CharacterVoice;
+  verdicts: Verdict[];
+  protests: string[];
+  idleMutters: string[];
+}
+
 export const VERDICTS: Verdict[] = [
   // ── AYE ───────────────────────────────────────────────────────────────
   { text: "Aye. Now put me down.", tone: "yes", weight: 3 },
@@ -396,3 +429,202 @@ export function pickVerdict(
 export function pickOne<T>(list: readonly T[]): T {
   return list[Math.floor(Math.random() * list.length)];
 }
+
+// ══════════════════════════════════════════════════════════════════════
+//  Two more dwarves for the gallery. Same jar, same beating, other souls.
+// ══════════════════════════════════════════════════════════════════════
+
+/** Grimble the Grim — a doom oracle. Cryptic, fatalistic, cold. */
+const GRIMBLE_VERDICTS: Verdict[] = [
+  { text: "It is written. Walk toward it.", tone: "yes", weight: 2 },
+  { text: "The bones say aye. The bones do not comfort.", tone: "yes", weight: 2 },
+  { text: "Yes. The dark decided this long ago.", tone: "yes", weight: 2 },
+  { text: "Do it. The ending is the same either way.", tone: "yes" },
+  { text: "Aye — and the crows will feast regardless.", tone: "yes" },
+  { text: "The omen glows. Rare. Obey it.", tone: "yes" },
+  { text: "Yes. Fate leans close and nods.", tone: "yes", weight: 2 },
+  { text: "Proceed. What is one more sin on the pile.", tone: "yes" },
+  { text: "The candle gutters toward yes. Move.", tone: "yes" },
+  { text: "Aye. Destiny is impatient tonight.", tone: "yes" },
+  { text: "Yes. I have seen it. You survive. Mostly.", tone: "yes", weight: 2 },
+  { text: "No. The omens curdle.", tone: "no", weight: 2 },
+  { text: "The shadow says no. Heed the shadow.", tone: "no", weight: 2 },
+  { text: "Nay. That road ends in weeping.", tone: "no", weight: 2 },
+  { text: "No. I have foreseen it, and it is grim.", tone: "no", weight: 2 },
+  { text: "The stars forbid it. Cruel, but right.", tone: "no" },
+  { text: "No. A cold wind answers for me.", tone: "no" },
+  { text: "Turn back. The veil recoils.", tone: "no" },
+  { text: "Nay. The dead advise against it, loudly.", tone: "no", weight: 2 },
+  { text: "No. Even the abyss winced.", tone: "no" },
+  { text: "The runes bleed 'no'. Do not test them.", tone: "no" },
+  { text: "No. Some doors are sealed in salt for a reason.", tone: "no" },
+  { text: "The veil is thick. I see fog and regret.", tone: "maybe", weight: 2 },
+  { text: "Perhaps. The threads are not yet cut.", tone: "maybe", weight: 2 },
+  { text: "The future writhes. Ask again in the dark.", tone: "maybe", weight: 2 },
+  { text: "Maybe. Fate still sharpens her scissors.", tone: "maybe" },
+  { text: "Unclear. The omens quarrel among themselves.", tone: "maybe" },
+  { text: "Mmm. The moon has not made up its mind.", tone: "maybe" },
+  { text: "Perhaps. Return when the candle is lower.", tone: "maybe" },
+  { text: "The bones scattered wide. No pattern yet.", tone: "maybe", weight: 2 },
+  { text: "Half a yes, wrapped in a shroud.", tone: "maybe" },
+  { text: "Ask the mirror. It lies less than I do.", tone: "maybe" },
+  { text: "The signs are smoke. Wave a hand and choose.", tone: "maybe" },
+  { text: "The old gods laugh. Never a good sign.", tone: "chaotic", weight: 2 },
+  { text: "Something stirs below. Do not wake it. Or do.", tone: "chaotic", weight: 2 },
+  { text: "The answer lies in the grave. Bring a shovel.", tone: "chaotic", weight: 2 },
+  { text: "Yes. No. The abyss merely shrugs.", tone: "chaotic" },
+  { text: "Burn a candle for it. Or burn the whole house.", tone: "chaotic" },
+  { text: "The spirits are busy. They left a note: 'lol'.", tone: "chaotic", weight: 2 },
+  { text: "Speak it to a crow. It knows your name.", tone: "chaotic" },
+  { text: "The prophecy is water-damaged. Improvise.", tone: "chaotic" },
+  { text: "Do it under a black moon and tell no priest.", tone: "chaotic", weight: 2 },
+  { text: "The veil parted. Behind it, more veil. Typical.", tone: "chaotic" },
+  { text: "Consult the worms. They inherit everything.", tone: "chaotic" },
+];
+const GRIMBLE_PROTESTS: string[] = [
+  "THE VEIL—", "MY OMENS", "DESIST", "THE DEAD SEE THIS", "CEASE",
+  "BLASPHEMY", "MY BONES", "NOT THE RUNES", "I CURSE THEE", "STOP, MORTAL",
+  "THE ABYSS—", "AGHHH", "MIND THE CANDLE", "UNHAND ME",
+];
+const GRIMBLE_MUTTERS: string[] = [
+  "Ask, before the candle dies.",
+  "The dark is listening. Ask.",
+  "I have eternity. You do not.",
+  "Speak your doubt aloud.",
+  "The omens grow bored.",
+  "Well? The grave waits.",
+  "Disturb me, then.",
+  "The runes cool. Ask quickly.",
+];
+
+/** Brusk the Basher — a brute. Loud, crude, all gains and no chill. */
+const BRUSK_VERDICTS: Verdict[] = [
+  { text: "SMASH IT. YES.", tone: "yes", weight: 3 },
+  { text: "AYE! Crush it, send it!", tone: "yes", weight: 2 },
+  { text: "YES. Do the strong thing.", tone: "yes", weight: 2 },
+  { text: "Do it! Weakness is a choice!", tone: "yes", weight: 2 },
+  { text: "HELL YES. Grip it and rip it.", tone: "yes", weight: 2 },
+  { text: "Yes! With your whole CHEST!", tone: "yes", weight: 2 },
+  { text: "AYE. No guts, no glory, no gains.", tone: "yes" },
+  { text: "Send it, warrior. SEND IT.", tone: "yes", weight: 2 },
+  { text: "YES. Fear is just spicy courage.", tone: "yes" },
+  { text: "Do it. Then flex about it.", tone: "yes" },
+  { text: "BIG yes. HUGE yes. Go.", tone: "yes" },
+  { text: "NO. Even I wouldn't, and I headbutt doors.", tone: "no", weight: 2 },
+  { text: "Nah. Sit down before you hurt yourself.", tone: "no", weight: 2 },
+  { text: "NO. That's a coward's plan.", tone: "no", weight: 2 },
+  { text: "No! Where is your SPINE?!", tone: "no", weight: 2 },
+  { text: "Nope. Not strong enough yet. Lift more.", tone: "no" },
+  { text: "NO. That's got skipped-leg-day energy.", tone: "no", weight: 2 },
+  { text: "Nah. Even my hammer said no.", tone: "no" },
+  { text: "NO. Walk it off. Walk it ALL off.", tone: "no" },
+  { text: "Absolutely not, small one.", tone: "no" },
+  { text: "No. That's how you pull something.", tone: "no" },
+  { text: "NAH. Try again when you're swole.", tone: "no" },
+  { text: "Ehh. Fight me for the answer.", tone: "maybe", weight: 2 },
+  { text: "Maybe. Depends how hard you'll swing.", tone: "maybe", weight: 2 },
+  { text: "MMM. Could go either way. Swing anyway.", tone: "maybe", weight: 2 },
+  { text: "Dunno. Punch something, then decide.", tone: "maybe" },
+  { text: "Maybe! Arm-wrestle me for it.", tone: "maybe" },
+  { text: "Half yes. The other half needs protein.", tone: "maybe", weight: 2 },
+  { text: "Eh. Flip a boulder. Heads it lands on you.", tone: "maybe" },
+  { text: "Could be. Do some reps and ask again.", tone: "maybe" },
+  { text: "MAYBE. Grunt if you agree.", tone: "maybe" },
+  { text: "Unclear. My muscles are thinking.", tone: "maybe" },
+  { text: "Ehh. The gods are spotting me. Ask later.", tone: "maybe" },
+  { text: "Do it with your CHEST.", tone: "chaotic", weight: 2 },
+  { text: "Rip your shirt off first. Always works.", tone: "chaotic", weight: 2 },
+  { text: "The answer is PROTEIN. And yes.", tone: "chaotic", weight: 2 },
+  { text: "Yes. Then we FEAST.", tone: "chaotic" },
+  { text: "Headbutt the problem. Report back.", tone: "chaotic", weight: 2 },
+  { text: "CHUG something and charge.", tone: "chaotic" },
+  { text: "Yell it into the void. The void lifts too.", tone: "chaotic" },
+  { text: "Yes! For HONOUR! And snacks!", tone: "chaotic", weight: 2 },
+  { text: "Flip the table. New table, new life.", tone: "chaotic" },
+  { text: "The gods say GO. I may have made that up.", tone: "chaotic" },
+  { text: "Do it RAW. No warmup. Live a little.", tone: "chaotic" },
+];
+const BRUSK_PROTESTS: string[] = [
+  "OW! RUDE!", "MY GAINS", "KNOCK IT OFF", "NOT THE HELM", "I'LL BITE",
+  "OI, MEAT!", "SQUARE UP", "MY HORNS!", "GRRAAH", "TOO HARD, PAL",
+  "EASY, TITAN", "AGH, ME SPLEEN", "THAT'S A FOUL", "HANDS OFF",
+];
+const BRUSK_MUTTERS: string[] = [
+  "Ask, ya coward.",
+  "Shake me like ya mean it.",
+  "C'mon, gimme a hard one.",
+  "I don't do gentle. Ask.",
+  "Flex first. Then ask.",
+  "Well? Spit it out.",
+  "Some of us are lifting here.",
+  "Ask before I nap.",
+];
+
+export const CHARACTERS: Character[] = [
+  {
+    id: "dobby",
+    name: "Dobby",
+    title: "the Decision Dwarf",
+    skin: {
+      hat: "cap",
+      hatStops: ["#e0663a", "#bf4a26", "#8c3117"],
+      tunic: ["#3d8b85", "#1d504e"],
+      beard: ["#fbf3e2", "#e3d6ba", "#bfae8d"],
+      skin: ["#f2b78c", "#dd9466", "#bd7449"],
+      nose: ["#ef9f77", "#c9714a"],
+      band: ["#f7cf6b", "#d19a2c"],
+      boot: ["#5d4230", "#38251a"],
+      cheek: "#e2604a",
+      brow: "#7a5334",
+      accent: "#f7efdd",
+    },
+    voice: { pitch: 0.7, rate: 0.95 },
+    verdicts: VERDICTS,
+    protests: PROTESTS,
+    idleMutters: IDLE_MUTTERS,
+  },
+  {
+    id: "grimble",
+    name: "Grimble",
+    title: "the Grim",
+    skin: {
+      hat: "wizard",
+      hatStops: ["#7d5bb0", "#54387f", "#33224f"],
+      tunic: ["#3b3560", "#211d3a"],
+      beard: ["#eef0f6", "#cfd2e0", "#a9adc0"],
+      skin: ["#cdbfa0", "#b3a382", "#8f7f60"],
+      nose: ["#c3b489", "#9d8d63"],
+      band: ["#c9a24a", "#8f6b1f"],
+      boot: ["#2f2a3f", "#1a1626"],
+      cheek: "#8f6fd0",
+      brow: "#4a4038",
+      accent: "#e8d9a0",
+    },
+    voice: { pitch: 0.45, rate: 0.82 },
+    verdicts: GRIMBLE_VERDICTS,
+    protests: GRIMBLE_PROTESTS,
+    idleMutters: GRIMBLE_MUTTERS,
+  },
+  {
+    id: "brusk",
+    name: "Brusk",
+    title: "the Basher",
+    skin: {
+      hat: "helm",
+      hatStops: ["#9aa0aa", "#6d7280", "#474b56"],
+      tunic: ["#b5642e", "#7a3d18"],
+      beard: ["#e59a4a", "#c4702a", "#93531c"],
+      skin: ["#e8a878", "#c97b4c", "#a25d34"],
+      nose: ["#d98a5e", "#b0603a"],
+      band: ["#c9b06a", "#8f7326"],
+      boot: ["#4a3524", "#2a1c12"],
+      cheek: "#d9603a",
+      brow: "#6a3d1c",
+      accent: "#dfe4ea",
+    },
+    voice: { pitch: 0.6, rate: 1.08 },
+    verdicts: BRUSK_VERDICTS,
+    protests: BRUSK_PROTESTS,
+    idleMutters: BRUSK_MUTTERS,
+  },
+];

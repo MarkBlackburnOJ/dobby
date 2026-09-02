@@ -108,8 +108,8 @@ class DobbySpeech {
     }
   }
 
-  /** Deliver a line. Cancels anything already in Dobby's mouth. */
-  say(text: string) {
+  /** Deliver a line, coloured to the speaking dwarf. Cancels anything mid-mouth. */
+  say(text: string, voiceOpts?: { pitch?: number; rate?: number }) {
     if (!this.supported || !this.enabled) return;
 
     this.stop();
@@ -120,9 +120,9 @@ class DobbySpeech {
       utter.voice = voice;
       utter.lang = voice.lang;
     }
-    // Low and unhurried: he is not pleased to be doing this.
-    utter.pitch = 0.7;
-    utter.rate = 0.95;
+    // Each dwarf has its own register; default is low and unhurried.
+    utter.pitch = voiceOpts?.pitch ?? 0.7;
+    utter.rate = voiceOpts?.rate ?? 0.95;
     utter.volume = 1;
 
     try {

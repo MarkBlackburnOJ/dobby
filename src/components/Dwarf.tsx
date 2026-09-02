@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import {
   motion,
   useAnimationFrame,
@@ -9,6 +9,7 @@ import {
   useTransform,
   type MotionValue,
 } from "framer-motion";
+import type { DwarfSkin } from "@/lib/verdicts";
 
 export type Mood = "idle" | "shaking" | "delivering";
 
@@ -22,6 +23,8 @@ interface DwarfProps {
   impactSeed: number;
   /** 0→1 magnitude of the latest impact, so a slam squashes harder than a tap. */
   impactForce: number;
+  /** Palette + hat that make this dwarf look like itself. */
+  skin: DwarfSkin;
   reducedMotion: boolean;
 }
 
@@ -34,7 +37,9 @@ interface DwarfProps {
  * lagging spring gives proper follow-through — the beard swings after the head
  * stops, the arms flail a beat late — without simulating any real physics.
  */
-export function Dwarf({ intensity, damage, mood, impactSeed, impactForce, reducedMotion }: DwarfProps) {
+export function Dwarf({ intensity, damage, mood, impactSeed, impactForce, skin, reducedMotion }: DwarfProps) {
+  // Unique per instance so two dwarves on one page never share gradient ids.
+  const uid = useId().replace(/:/g, "");
   const stageRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
 
@@ -186,47 +191,47 @@ export function Dwarf({ intensity, damage, mood, impactSeed, impactForce, reduce
           shapeRendering="geometricPrecision"
         >
       <defs>
-        <linearGradient id="d-hat" x1="0" y1="0" x2="0.35" y2="1">
-          <stop offset="0%" stopColor="#e0663a" />
-          <stop offset="55%" stopColor="#bf4a26" />
-          <stop offset="100%" stopColor="#8c3117" />
+        <linearGradient id={`${uid}d-hat`} x1="0" y1="0" x2="0.35" y2="1">
+          <stop offset="0%" stopColor={skin.hatStops[0]} />
+          <stop offset="55%" stopColor={skin.hatStops[1]} />
+          <stop offset="100%" stopColor={skin.hatStops[2]} />
         </linearGradient>
-        <linearGradient id="d-skin" x1="0.2" y1="0" x2="0.8" y2="1">
-          <stop offset="0%" stopColor="#f2b78c" />
-          <stop offset="60%" stopColor="#dd9466" />
-          <stop offset="100%" stopColor="#bd7449" />
+        <linearGradient id={`${uid}d-skin`} x1="0.2" y1="0" x2="0.8" y2="1">
+          <stop offset="0%" stopColor={skin.skin[0]} />
+          <stop offset="60%" stopColor={skin.skin[1]} />
+          <stop offset="100%" stopColor={skin.skin[2]} />
         </linearGradient>
-        <linearGradient id="d-nose" x1="0.3" y1="0" x2="0.7" y2="1">
-          <stop offset="0%" stopColor="#ef9f77" />
-          <stop offset="100%" stopColor="#c9714a" />
+        <linearGradient id={`${uid}d-nose`} x1="0.3" y1="0" x2="0.7" y2="1">
+          <stop offset="0%" stopColor={skin.nose[0]} />
+          <stop offset="100%" stopColor={skin.nose[1]} />
         </linearGradient>
-        <linearGradient id="d-beard" x1="0.25" y1="0" x2="0.75" y2="1">
-          <stop offset="0%" stopColor="#fbf3e2" />
-          <stop offset="55%" stopColor="#e3d6ba" />
-          <stop offset="100%" stopColor="#bfae8d" />
+        <linearGradient id={`${uid}d-beard`} x1="0.25" y1="0" x2="0.75" y2="1">
+          <stop offset="0%" stopColor={skin.beard[0]} />
+          <stop offset="55%" stopColor={skin.beard[1]} />
+          <stop offset="100%" stopColor={skin.beard[2]} />
         </linearGradient>
-        <linearGradient id="d-tunic" x1="0.2" y1="0" x2="0.8" y2="1">
-          <stop offset="0%" stopColor="#3d8b85" />
-          <stop offset="100%" stopColor="#1d504e" />
+        <linearGradient id={`${uid}d-tunic`} x1="0.2" y1="0" x2="0.8" y2="1">
+          <stop offset="0%" stopColor={skin.tunic[0]} />
+          <stop offset="100%" stopColor={skin.tunic[1]} />
         </linearGradient>
-        <linearGradient id="d-band" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#f7cf6b" />
-          <stop offset="100%" stopColor="#d19a2c" />
+        <linearGradient id={`${uid}d-band`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={skin.band[0]} />
+          <stop offset="100%" stopColor={skin.band[1]} />
         </linearGradient>
-        <linearGradient id="d-boot" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#5d4230" />
-          <stop offset="100%" stopColor="#38251a" />
+        <linearGradient id={`${uid}d-boot`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={skin.boot[0]} />
+          <stop offset="100%" stopColor={skin.boot[1]} />
         </linearGradient>
-        <radialGradient id="d-cheek" cx="0.5" cy="0.5" r="0.5">
-          <stop offset="0%" stopColor="#e2604a" stopOpacity="0.5" />
-          <stop offset="100%" stopColor="#e2604a" stopOpacity="0" />
+        <radialGradient id={`${uid}d-cheek`} cx="0.5" cy="0.5" r="0.5">
+          <stop offset="0%" stopColor={skin.cheek} stopOpacity="0.5" />
+          <stop offset="100%" stopColor={skin.cheek} stopOpacity="0" />
         </radialGradient>
-        <radialGradient id="d-bruise" cx="0.5" cy="0.5" r="0.5">
+        <radialGradient id={`${uid}d-bruise`} cx="0.5" cy="0.5" r="0.5">
           <stop offset="0%" stopColor="#8f6fd0" stopOpacity="0.85" />
           <stop offset="70%" stopColor="#6b4fa8" stopOpacity="0.45" />
           <stop offset="100%" stopColor="#6b4fa8" stopOpacity="0" />
         </radialGradient>
-        <radialGradient id="d-blood" cx="0.5" cy="0.4" r="0.6">
+        <radialGradient id={`${uid}d-blood`} cx="0.5" cy="0.4" r="0.6">
           <stop offset="0%" stopColor="#e0352b" />
           <stop offset="60%" stopColor="#b21f1f" />
           <stop offset="100%" stopColor="#7d1414" />
@@ -282,7 +287,7 @@ export function Dwarf({ intensity, damage, mood, impactSeed, impactForce, reduce
                   />
                   <path
                     d={`M ${x - 14} 206 h 28 a 9 9 0 0 1 9 9 v 5 a 4 4 0 0 1 -4 4 h -${i === 0 ? 40 : 38} a 4 4 0 0 1 -4 -4 v -5 a 9 9 0 0 1 9 -9 z`}
-                    fill="url(#d-boot)"
+                    fill={`url(#${uid}d-boot)`}
                     stroke="#1c130f"
                     strokeWidth={3.2}
                     strokeLinejoin="round"
@@ -296,13 +301,13 @@ export function Dwarf({ intensity, damage, mood, impactSeed, impactForce, reduce
         {/* ── Torso ─────────────────────────────────────────────────────── */}
         <path
           d="M 62 128 C 58 150, 56 172, 62 188 C 74 196, 126 196, 138 188 C 144 172, 142 150, 138 128 Z"
-          fill="url(#d-tunic)"
+          fill={`url(#${uid}d-tunic)`}
           stroke="#1c130f"
           strokeWidth={3.4}
           strokeLinejoin="round"
         />
         <rect x={58} y={166} width={84} height={13} rx={4} fill="#3b2a20" stroke="#1c130f" strokeWidth={3} />
-        <rect x={90} y={164} width={20} height={17} rx={4} fill="url(#d-band)" stroke="#1c130f" strokeWidth={3} />
+        <rect x={90} y={164} width={20} height={17} rx={4} fill={`url(#${uid}d-band)`} stroke="#1c130f" strokeWidth={3} />
 
         {/* ── Arms ──────────────────────────────────────────────────────── */}
         <motion.g
@@ -312,7 +317,7 @@ export function Dwarf({ intensity, damage, mood, impactSeed, impactForce, reduce
             <g>
               {/* Left arm ends in a bandaged stump. Don't ask where the rest went. */}
               <path d="M 64 134 C 57 140, 53 148, 53 157" fill="none" stroke="#1c130f" strokeWidth={17} strokeLinecap="round" />
-              <path d="M 64 134 C 57 140, 53 148, 53 157" fill="none" stroke="url(#d-tunic)" strokeWidth={11.5} strokeLinecap="round" />
+              <path d="M 64 134 C 57 140, 53 148, 53 157" fill="none" stroke={`url(#${uid}d-tunic)`} strokeWidth={11.5} strokeLinecap="round" />
               <circle cx={53} cy={159} r={9.5} fill="#f7efdd" stroke="#1c130f" strokeWidth={3} />
               <path d="M 45 155 l 17 3 M 45 162 l 16 -3" stroke="#d9c9a6" strokeWidth={2} strokeLinecap="round" />
               {damage >= 14 && <ellipse cx={53} cy={160} rx={6} ry={5} fill="#9e1a1a" opacity={0.82} />}
@@ -329,11 +334,11 @@ export function Dwarf({ intensity, damage, mood, impactSeed, impactForce, reduce
               <path
                 d="M 64 134 C 48 142, 40 156, 40 170"
                 fill="none"
-                stroke="url(#d-tunic)"
+                stroke={`url(#${uid}d-tunic)`}
                 strokeWidth={11.5}
                 strokeLinecap="round"
               />
-              <circle cx={39} cy={175} r={11} fill="url(#d-skin)" stroke="#1c130f" strokeWidth={3.2} />
+              <circle cx={39} cy={175} r={11} fill={`url(#${uid}d-skin)`} stroke="#1c130f" strokeWidth={3.2} />
             </>
           )}
         </motion.g>
@@ -344,7 +349,7 @@ export function Dwarf({ intensity, damage, mood, impactSeed, impactForce, reduce
             <g>
               {/* The other arm goes too — a second stump. He's mostly torso now. */}
               <path d="M 136 134 C 143 140, 147 148, 147 157" fill="none" stroke="#1c130f" strokeWidth={17} strokeLinecap="round" />
-              <path d="M 136 134 C 143 140, 147 148, 147 157" fill="none" stroke="url(#d-tunic)" strokeWidth={11.5} strokeLinecap="round" />
+              <path d="M 136 134 C 143 140, 147 148, 147 157" fill="none" stroke={`url(#${uid}d-tunic)`} strokeWidth={11.5} strokeLinecap="round" />
               <circle cx={147} cy={159} r={9.5} fill="#f7efdd" stroke="#1c130f" strokeWidth={3} />
               <path d="M 138 155 l 17 3 M 139 162 l 16 -3" stroke="#d9c9a6" strokeWidth={2} strokeLinecap="round" />
               {damage >= 22 && <ellipse cx={147} cy={160} rx={6} ry={5} fill="#9e1a1a" opacity={0.82} />}
@@ -352,7 +357,7 @@ export function Dwarf({ intensity, damage, mood, impactSeed, impactForce, reduce
           ) : (
             <>
               <path d="M 136 134 C 152 142, 160 156, 160 170" fill="none" stroke="#1c130f" strokeWidth={17} strokeLinecap="round" />
-              <path d="M 136 134 C 152 142, 160 156, 160 170" fill="none" stroke="url(#d-tunic)" strokeWidth={11.5} strokeLinecap="round" />
+              <path d="M 136 134 C 152 142, 160 156, 160 170" fill="none" stroke={`url(#${uid}d-tunic)`} strokeWidth={11.5} strokeLinecap="round" />
               {damage >= 10 ? (
                 <g>
                   {/* Hand's gone; it's a hook now. He insists it's an upgrade. */}
@@ -362,16 +367,16 @@ export function Dwarf({ intensity, damage, mood, impactSeed, impactForce, reduce
                   <path d="M 161 173 v 9 a 7 7 0 1 0 9 -3" fill="none" stroke="#7c8896" strokeWidth={1.6} strokeLinecap="round" opacity={0.5} />
                 </g>
               ) : (
-                <circle cx={161} cy={175} r={11} fill="url(#d-skin)" stroke="#1c130f" strokeWidth={3.2} />
+                <circle cx={161} cy={175} r={11} fill={`url(#${uid}d-skin)`} stroke="#1c130f" strokeWidth={3.2} />
               )}
             </>
           )}
         </motion.g>
 
         {/* ── Head ──────────────────────────────────────────────────────── */}
-        <ellipse cx={64} cy={92} rx={7.5} ry={10} fill="url(#d-skin)" stroke="#1c130f" strokeWidth={3.2} />
-        <ellipse cx={136} cy={92} rx={7.5} ry={10} fill="url(#d-skin)" stroke="#1c130f" strokeWidth={3.2} />
-        <ellipse cx={100} cy={88} rx={37} ry={34} fill="url(#d-skin)" stroke="#1c130f" strokeWidth={3.4} />
+        <ellipse cx={64} cy={92} rx={7.5} ry={10} fill={`url(#${uid}d-skin)`} stroke="#1c130f" strokeWidth={3.2} />
+        <ellipse cx={136} cy={92} rx={7.5} ry={10} fill={`url(#${uid}d-skin)`} stroke="#1c130f" strokeWidth={3.2} />
+        <ellipse cx={100} cy={88} rx={37} ry={34} fill={`url(#${uid}d-skin)`} stroke="#1c130f" strokeWidth={3.4} />
 
         {/* ── Beard (drawn over the jaw, swings on its own) ─────────────── */}
         <motion.g
@@ -379,7 +384,7 @@ export function Dwarf({ intensity, damage, mood, impactSeed, impactForce, reduce
         >
           <path
             d="M 64 96 C 50 118, 48 152, 58 174 C 66 192, 80 202, 100 202 C 120 202, 134 192, 142 174 C 152 152, 150 118, 136 96 C 128 112, 116 120, 100 120 C 84 120, 72 112, 64 96 Z"
-            fill="url(#d-beard)"
+            fill={`url(#${uid}d-beard)`}
             stroke="#1c130f"
             strokeWidth={3.4}
             strokeLinejoin="round"
@@ -398,7 +403,7 @@ export function Dwarf({ intensity, damage, mood, impactSeed, impactForce, reduce
               <path
                 d={`M ${x} 190 C ${x + dir * 4} 202, ${x - dir * 3} 210, ${x + dir * 2} 220`}
                 fill="none"
-                stroke="url(#d-beard)"
+                stroke={`url(#${uid}d-beard)`}
                 strokeWidth={11}
                 strokeLinecap="round"
               />
@@ -410,14 +415,14 @@ export function Dwarf({ intensity, damage, mood, impactSeed, impactForce, reduce
                 strokeLinecap="round"
                 opacity={0.28}
               />
-              <rect x={x - 7} y={206} width={14} height={7} rx={3} fill="url(#d-band)" stroke="#1c130f" strokeWidth={2.4} />
+              <rect x={x - 7} y={206} width={14} height={7} rx={3} fill={`url(#${uid}d-band)`} stroke="#1c130f" strokeWidth={2.4} />
             </g>
           ))}
 
           {/* Moustache sits on top of the beard mass */}
           <path
             d="M 100 108 C 88 104, 72 108, 66 120 C 74 126, 92 118, 100 112 C 108 118, 126 126, 134 120 C 128 108, 112 104, 100 108 Z"
-            fill="url(#d-beard)"
+            fill={`url(#${uid}d-beard)`}
             stroke="#1c130f"
             strokeWidth={3.2}
             strokeLinejoin="round"
@@ -425,17 +430,17 @@ export function Dwarf({ intensity, damage, mood, impactSeed, impactForce, reduce
         </motion.g>
 
         {/* ── Face (over the beard so the mouth reads) ──────────────────── */}
-        <ellipse cx={76} cy={96} rx={11} ry={7} fill="url(#d-cheek)" />
-        <ellipse cx={124} cy={96} rx={11} ry={7} fill="url(#d-cheek)" />
+        <ellipse cx={76} cy={96} rx={11} ry={7} fill={`url(#${uid}d-cheek)`} />
+        <ellipse cx={124} cy={96} rx={11} ry={7} fill={`url(#${uid}d-cheek)`} />
 
         <Eyes state={eyes} />
 
         {/* Angry brows */}
-        <path d="M 76 68 L 94 76" stroke="#7a5334" strokeWidth={7} strokeLinecap="round" fill="none" />
-        <path d="M 124 68 L 106 76" stroke="#7a5334" strokeWidth={7} strokeLinecap="round" fill="none" />
+        <path d="M 76 68 L 94 76" stroke={skin.brow} strokeWidth={7} strokeLinecap="round" fill="none" />
+        <path d="M 124 68 L 106 76" stroke={skin.brow} strokeWidth={7} strokeLinecap="round" fill="none" />
 
         {/* Big bulbous nose, last so it sits proud of the face */}
-        <ellipse cx={100} cy={97} rx={14} ry={12} fill="url(#d-nose)" stroke="#1c130f" strokeWidth={3.2} />
+        <ellipse cx={100} cy={97} rx={14} ry={12} fill={`url(#${uid}d-nose)`} stroke="#1c130f" strokeWidth={3.2} />
         <ellipse cx={95} cy={93} rx={4} ry={3} fill="#ffffff" opacity={0.35} />
 
         <Mouth mood={mood} damage={damage} />
@@ -447,7 +452,7 @@ export function Dwarf({ intensity, damage, mood, impactSeed, impactForce, reduce
             <rect x={119} y={57} width={7} height={23} rx={2} fill="#e8d6b2" stroke="#1c130f" strokeWidth={2} transform="rotate(-16 122 68)" />
           </g>
         )}
-        {damage >= 2 && <ellipse cx={74} cy={92} rx={11} ry={8} fill="url(#d-bruise)" />}
+        {damage >= 2 && <ellipse cx={74} cy={92} rx={11} ry={8} fill={`url(#${uid}d-bruise)`} />}
         {damage >= 3 && (
           <path d="M 60 108 q 6 -5 12 0" fill="none" stroke="#a8452f" strokeWidth={2.6} strokeLinecap="round" />
         )}
@@ -467,7 +472,7 @@ export function Dwarf({ intensity, damage, mood, impactSeed, impactForce, reduce
         {/* Black eye — the first injury that reads from across the room. */}
         {damage >= 5 && (
           <g>
-            <ellipse cx={86} cy={82} rx={13} ry={11} fill="url(#d-bruise)" />
+            <ellipse cx={86} cy={82} rx={13} ry={11} fill={`url(#${uid}d-bruise)`} />
             <path d="M 76 90 q 10 6 20 0" fill="none" stroke="#6b4fa8" strokeWidth={2.2} strokeLinecap="round" opacity={0.7} />
           </g>
         )}
@@ -475,7 +480,7 @@ export function Dwarf({ intensity, damage, mood, impactSeed, impactForce, reduce
         {/* Matching bruise on the other cheek, and one across the nose. */}
         {damage >= 6 && (
           <>
-            <ellipse cx={126} cy={92} rx={10} ry={7.5} fill="url(#d-bruise)" />
+            <ellipse cx={126} cy={92} rx={10} ry={7.5} fill={`url(#${uid}d-bruise)`} />
             <g transform="rotate(12 100 97)">
               <rect x={86} y={93} width={28} height={9} rx={2} fill="#f5e6c8" stroke="#1c130f" strokeWidth={2.4} />
               <rect x={96} y={86} width={8} height={23} rx={2} fill="#e8d6b2" stroke="#1c130f" strokeWidth={2} />
@@ -614,23 +619,7 @@ export function Dwarf({ intensity, damage, mood, impactSeed, impactForce, reduce
             transformOrigin: "100px 60px",
           }}
         >
-          <path
-            d="M 50 60 C 50 28, 72 8, 100 8 C 130 8, 154 30, 163 56 C 166 65, 158 73, 149 68 C 143 64, 139 59, 135 54 C 128 60, 110 64, 92 64 C 74 64, 58 63, 50 60 Z"
-            fill="url(#d-hat)"
-            stroke="#1c130f"
-            strokeWidth={3.4}
-            strokeLinejoin="round"
-          />
-          <path
-            d="M 66 30 C 76 18, 96 14, 110 18"
-            fill="none"
-            stroke="#ffffff"
-            strokeWidth={5}
-            strokeLinecap="round"
-            opacity={0.16}
-          />
-          <rect x={46} y={52} width={108} height={17} rx={8} fill="url(#d-band)" stroke="#1c130f" strokeWidth={3.4} />
-          <circle cx={165} cy={70} r={10} fill="#f7efdd" stroke="#1c130f" strokeWidth={3.2} />
+          <Hat skin={skin} uid={uid} />
         </motion.g>
 
         {/* Tiers 23–25: the soul gives up and starts to leave. */}
@@ -763,6 +752,66 @@ function BloodDrip({ x, y, delay = 0, reduced }: { x: number; y: number; delay?:
       animate={{ y: [0, 22], opacity: [0, 1, 1, 0] }}
       transition={{ duration: 1.9, repeat: Infinity, delay, ease: "easeIn", times: [0, 0.12, 0.72, 1] }}
     />
+  );
+}
+
+function Hat({ skin, uid }: { skin: DwarfSkin; uid: string }) {
+  if (skin.hat === "wizard") {
+    return (
+      <g>
+        <path
+          d="M 54 62 C 58 40, 80 14, 110 5 C 123 1, 129 9, 123 20 C 112 40, 97 55, 92 64 C 80 64, 64 63, 54 62 Z"
+          fill={`url(#${uid}d-hat)`}
+          stroke="#1c130f"
+          strokeWidth={3.4}
+          strokeLinejoin="round"
+        />
+        <path
+          d="M 116 13 l 2.2 4.6 l 5 0.7 l -3.7 3.5 l 0.9 5 l -4.4 -2.4 l -4.4 2.4 l 0.9 -5 l -3.7 -3.5 l 5 -0.7 z"
+          fill={skin.accent}
+          stroke="#1c130f"
+          strokeWidth={1.4}
+          strokeLinejoin="round"
+        />
+        <rect x={46} y={52} width={108} height={17} rx={8} fill={`url(#${uid}d-band)`} stroke="#1c130f" strokeWidth={3.4} />
+      </g>
+    );
+  }
+  if (skin.hat === "helm") {
+    return (
+      <g>
+        {/* Horns first, so the dome caps their roots. */}
+        <path d="M 58 58 C 40 52, 28 40, 32 22 C 44 32, 54 44, 63 55 Z" fill={skin.accent} stroke="#1c130f" strokeWidth={3} strokeLinejoin="round" />
+        <path d="M 142 58 C 160 52, 172 40, 168 22 C 156 32, 146 44, 137 55 Z" fill={skin.accent} stroke="#1c130f" strokeWidth={3} strokeLinejoin="round" />
+        <path
+          d="M 52 62 C 52 30, 74 14, 100 14 C 126 14, 148 30, 148 62 C 132 55, 68 55, 52 62 Z"
+          fill={`url(#${uid}d-hat)`}
+          stroke="#1c130f"
+          strokeWidth={3.4}
+          strokeLinejoin="round"
+        />
+        <path d="M 100 15 L 100 57" stroke="#1c130f" strokeWidth={2.2} opacity={0.35} />
+        <rect x={46} y={52} width={108} height={17} rx={6} fill={`url(#${uid}d-band)`} stroke="#1c130f" strokeWidth={3.4} />
+        <circle cx={66} cy={60} r={1.9} fill="#1c130f" opacity={0.5} />
+        <circle cx={100} cy={60} r={1.9} fill="#1c130f" opacity={0.5} />
+        <circle cx={134} cy={60} r={1.9} fill="#1c130f" opacity={0.5} />
+      </g>
+    );
+  }
+  // Cap — the classic miner's floppy.
+  return (
+    <g>
+      <path
+        d="M 50 60 C 50 28, 72 8, 100 8 C 130 8, 154 30, 163 56 C 166 65, 158 73, 149 68 C 143 64, 139 59, 135 54 C 128 60, 110 64, 92 64 C 74 64, 58 63, 50 60 Z"
+        fill={`url(#${uid}d-hat)`}
+        stroke="#1c130f"
+        strokeWidth={3.4}
+        strokeLinejoin="round"
+      />
+      <path d="M 66 30 C 76 18, 96 14, 110 18" fill="none" stroke="#ffffff" strokeWidth={5} strokeLinecap="round" opacity={0.16} />
+      <rect x={46} y={52} width={108} height={17} rx={8} fill={`url(#${uid}d-band)`} stroke="#1c130f" strokeWidth={3.4} />
+      <circle cx={165} cy={70} r={10} fill={skin.accent} stroke="#1c130f" strokeWidth={3.2} />
+    </g>
   );
 }
 
