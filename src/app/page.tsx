@@ -7,6 +7,7 @@ import { useShake } from "@/lib/useShake";
 import { pickVerdict, pickOne, IDLE_MUTTERS, PROTESTS, TONE_META, type Verdict, type Tone } from "@/lib/verdicts";
 import { audio, haptic } from "@/lib/sound";
 import { speech } from "@/lib/speech";
+import { InstallPrompt } from "@/components/InstallPrompt";
 
 export default function Home() {
   const reducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
@@ -280,6 +281,10 @@ export default function Home() {
           No motion sensors — poke him or drag the chamber instead.
         </p>
       )}
+
+      {/* Android's install offer. Held back until he has delivered at least
+          one verdict, so we're asking someone who knows what they'd install. */}
+      <InstallPrompt canPrompt={recentVerdicts.length > 0} />
 
       {/* Motion permission — iOS only, and it clears the safe area instead of
           landing on top of the controls the way the old fixed banner did. */}

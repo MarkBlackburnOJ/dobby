@@ -22,6 +22,7 @@ Grant motion sensor permission on iOS, then shake your device. On desktop, use t
 - **63-Line Verdict Bank**: Weighted random sampling, refuses to repeat
 - **Dark/Light Theme**: Respects system preferences and reduced-motion
 - **Haptic Feedback**: Vibration on iOS and Android
+- **Installable**: PWA with offline support — Android offers to install it
 
 ## Tech Stack
 
@@ -40,6 +41,17 @@ Grant motion sensor permission on iOS, then shake your device. On desktop, use t
 
 No environment variables are needed — Dobby is entirely self-contained.
 
+## Icons
+
+The four PNGs in `public/` are the only binaries in the repo — everything else,
+sound included, is synthesized at runtime. They exist because Android will not
+offer to install a site whose manifest points at an SVG. Edit
+`assets/icon.svg` and regenerate:
+
+```bash
+npm run icons
+```
+
 ## Architecture
 
 - `src/app/page.tsx` — Main orchestrator (251 lines)
@@ -48,6 +60,8 @@ No environment variables are needed — Dobby is entirely self-contained.
 - `src/lib/sound.ts` — WebAudio synthesis (180 lines)
 - `src/lib/verdicts.ts` — Verdict bank (61 lines)
 - `src/lib/speech.ts` — Verdict narration (Web Speech API)
+- `src/app/manifest.ts` — PWA manifest
+- `public/sw.js` — Service worker (offline + installability)
 
 ## License
 

@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0.4" y2="1">
+      <stop offset="0" stop-color="#1b2732"/>
+      <stop offset="1" stop-color="#0a0f13"/>
+    </linearGradient>
+    <linearGradient id="hat" x1="0.2" y1="0" x2="0.8" y2="1">
+      <stop offset="0" stop-color="#e0663a"/>
+      <stop offset="0.55" stop-color="#bf4a26"/>
+      <stop offset="1" stop-color="#8c3117"/>
+    </linearGradient>
+    <linearGradient id="band" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f7cf6b"/>
+      <stop offset="1" stop-color="#d19a2c"/>
+    </linearGradient>
+    <linearGradient id="skin" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f2b78c"/>
+      <stop offset="1" stop-color="#dd9466"/>
+    </linearGradient>
+    <linearGradient id="beard" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fbf3e2"/>
+      <stop offset="1" stop-color="#bfae8d"/>
+    </linearGradient>
+    <linearGradient id="tunic" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3d8b85"/>
+      <stop offset="1" stop-color="#1d504e"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="512" height="512" fill="url(#bg)"/>
+
+  <!-- shoulders -->
+  <path d="M128 466 C 144 414 190 388 256 388 C 322 388 368 414 384 466 Z" fill="url(#tunic)"/>
+
+  <!-- face -->
+  <ellipse cx="256" cy="228" rx="84" ry="76" fill="url(#skin)"/>
+
+  <!-- scowl: inner brow ends sit low -->
+  <path d="M196 196 C 214 190 236 196 246 208" stroke="#8a6a4a" stroke-width="15" stroke-linecap="round" fill="none" opacity="0.55"/>
+  <path d="M266 208 C 276 196 298 190 316 196" stroke="#8a6a4a" stroke-width="15" stroke-linecap="round" fill="none" opacity="0.55"/>
+
+  <!-- eyes -->
+  <ellipse cx="222" cy="232" rx="10" ry="11" fill="#241a12"/>
+  <ellipse cx="290" cy="232" rx="10" ry="11" fill="#241a12"/>
+  <circle cx="226" cy="228" r="3.5" fill="#ffffff" opacity="0.9"/>
+  <circle cx="294" cy="228" r="3.5" fill="#ffffff" opacity="0.9"/>
+
+  <!-- beard: top edge dips in the centre so the face reads -->
+  <path d="M170 258 C 156 336 174 406 216 438 C 238 456 274 456 296 438 C 338 406 356 336 342 258 C 304 300 208 300 170 258 Z" fill="url(#beard)"/>
+  <!-- moustache -->
+  <path d="M192 272 C 218 256 244 268 256 286 C 268 268 294 256 320 272 C 310 302 280 308 256 298 C 232 308 202 302 192 272 Z" fill="url(#beard)"/>
+
+  <!-- nose -->
+  <ellipse cx="256" cy="272" rx="28" ry="24" fill="#c9714a"/>
+  <ellipse cx="248" cy="265" rx="10" ry="8" fill="#dd9466" opacity="0.7"/>
+
+  <!-- hat -->
+  <path d="M248 40 C 306 68 348 114 362 158 C 320 176 192 176 150 158 C 168 102 204 62 248 40 Z" fill="url(#hat)"/>
+  <path d="M150 158 C 192 176 320 176 362 158 L 368 186 C 324 204 188 204 144 186 Z" fill="url(#band)"/>
+</svg>
