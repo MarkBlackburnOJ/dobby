@@ -6,6 +6,7 @@ import { Dwarf } from "@/components/Dwarf";
 import { useShake } from "@/lib/useShake";
 import { pickVerdict, pickOne, IDLE_MUTTERS, PROTESTS, TONE_META, type Verdict, type Tone } from "@/lib/verdicts";
 import { audio, haptic } from "@/lib/sound";
+import { speech } from "@/lib/speech";
 
 export default function Home() {
   const reducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
@@ -17,15 +18,19 @@ export default function Home() {
   const [permission, setPermission] = useState<"prompt" | "granted" | "denied" | "unsupported">("prompt");
   const [showPermissionBanner, setShowPermissionBanner] = useState(false);
   const [muted, setMuted] = useState(audio.muted);
+  const [speechOn, setSpeechOn] = useState(speech.enabled);
+  const [speechSupported, setSpeechSupported] = useState(false);
   const [recentVerdicts, setRecentVerdicts] = useState<string[]>([]);
   const [protest, setProtest] = useState<string | null>(null);
   const protestTimeoutRef = useRef<number | undefined>(undefined);
+  const speechTimeoutRef = useRef<number | undefined>(undefined);
 
   const shakeApi = useShake({
     armed: shake.armed,
     onTrigger: ({ intensity }) => {
       if (!shake.armed) return;
       audio.unlock();
+      speech.unlock();
       
       const next = pickVerdict(undefined, recentVerdicts);
       setVerdict(next);
@@ -38,6 +43,12 @@ export default function Home() {
       
       audio.verdict(next.tone);
       haptic([50, 100, 30, 100]);
+
+      // Let the sting land first — he talks over its tail, not through it.
+      window.clearTimeout(speechTimeoutRef.current);
+      speechTimeoutRef.current = window.setTimeout(() => {
+        if (!audio.muted) speech.say(next.text);
+      }, 420);
       
       setShake({ armed: false });
       const id = window.setTimeout(() => {
@@ -48,6 +59,7 @@ export default function Home() {
     },
     onHit: (force) => {
       audio.unlock();
+      speech.unlock();
       audio.thud(force);
       audio.grunt(force);
       audio.glass(force);
@@ -63,6 +75,19 @@ export default function Home() {
   });
 
   useEffect(() => {
+    setSpeechSupported(speech.supported);
+  }, []);
+
+  useEffect(
+    () => () => {
+      window.clearTimeout(protestTimeoutRef.current);
+      window.clearTimeout(speechTimeoutRef.current);
+      speech.stop();
+    },
+    [],
+  );
+
+  useEffect(() => {
     setPermission(shakeApi.permission);
     if (shakeApi.permission === "prompt" && window.innerHeight < 800) {
       setShowPermissionBanner(true);
@@ -71,12 +96,15 @@ export default function Home() {
 
   const requestPermission = useCallback(async () => {
     audio.unlock();
+    speech.unlock();
     const result = await shakeApi.requestAccess();
     setPermission(result);
     setShowPermissionBanner(false);
   }, [shakeApi]);
 
   const dismiss = useCallback(() => {
+    window.clearTimeout(speechTimeoutRef.current);
+    speech.stop();
     setVerdict(null);
     setMood("idle");
     setShake({ armed: true });
@@ -86,7 +114,14 @@ export default function Home() {
     const next = !muted;
     setMuted(next);
     audio.setMuted(next);
+    if (next) speech.stop();
   }, [muted]);
+
+  const toggleSpeech = useCallback(() => {
+    const next = !speechOn;
+    setSpeechOn(next);
+    speech.setEnabled(next);
+  }, [speechOn]);
 
   return (
     <main className="min-h-screen flex flex-col items-center justify-center px-4 py-6 relative overflow-hidden">
@@ -156,6 +191,8 @@ export default function Home() {
             transition={{ duration: 0.3 }}
           >
             <div
+              role="status"
+              aria-live="polite"
               className="rounded-2xl p-6 backdrop-blur-md border"
               style={{
                 backgroundColor: `${TONE_META[verdict.tone as Tone].glow}`,
@@ -194,6 +231,16 @@ export default function Home() {
         >
           {muted ? "🔇" : "🔊"}
         </button>
+        {speechSupported && (
+          <button
+            onClick={toggleSpeech}
+            className="px-4 py-3 rounded-full bg-gray-700 hover:bg-gray-600 text-white font-bold transition-colors shadow-lg"
+            aria-label={speechOn ? "Silence Dobby's voice" : "Let Dobby speak"}
+            aria-pressed={speechOn}
+          >
+            {speechOn ? "🗣️" : "🤐"}
+          </button>
+        )}
       </div>
 
       {/* Permission prompt banner */}
