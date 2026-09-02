@@ -2,6 +2,8 @@
 
 **Dobby** is a session dwarf shake oracle built with React 19, Next.js 16, and Framer Motion. Shake your phone (or drag the chamber on desktop), and Dobby delivers a sarcastic answer from his glass chamber.
 
+**Live demo:** https://dobby-eta.vercel.app
+
 ## Quick Start
 
 ```bash
