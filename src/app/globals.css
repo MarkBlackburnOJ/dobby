@@ -45,7 +45,7 @@ body {
 }
 
 .dwarf-svg {
-  max-width: 100%;
+  width: 100%;
   height: auto;
   filter: drop-shadow(0 10px 30px rgba(0, 0, 0, 0.4));
 }
@@ -238,4 +238,27 @@ body {
     background: rgba(0, 0, 0, 0.07);
     box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.14), inset 0 0 0 1px rgba(0, 0, 0, 0.07);
   }
+}
+
+/* ── The chamber ──────────────────────────────────────────────────────────
+   Dobby is deliberately smaller than his cell so there is somewhere to throw
+   him. The stage fills the glass; the body is what actually travels, and its
+   size sets how far it can go before it meets a wall.
+*/
+
+.dwarf-stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+}
+
+.dwarf-body {
+  width: 66%;
+  max-width: 22rem;
+  max-height: 100%;
+  display: grid;
+  place-items: center;
+  will-change: transform;
 }

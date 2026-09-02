@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   motion,
   useAnimationFrame,
@@ -15,7 +15,7 @@ export type Mood = "idle" | "shaking" | "delivering";
 interface DwarfProps {
   /** 0→1 shake energy, updated outside React. */
   intensity: MotionValue<number>;
-  /** 0→5. Accumulated abuse; drives plasters, bruises and despair. */
+  /** 0→8. Accumulated abuse; drives plasters, bruises and despair. */
   damage: number;
   mood: Mood;
   /** Bumped on every glass impact to fire the squash + flash. */
@@ -33,6 +33,43 @@ interface DwarfProps {
  * stops, the arms flail a beat late — without simulating any real physics.
  */
 export function Dwarf({ intensity, damage, mood, impactSeed, reducedMotion }: DwarfProps) {
+  const stageRef = useRef<HTMLDivElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
+
+  /**
+   * How far he can travel before he's up against the glass. Measured rather
+   * than guessed, so he makes contact on any screen shape. offsetWidth, not
+   * getBoundingClientRect, or his own transform would feed back into it.
+   */
+  const travel = useRef({ x: 0, y: 0 });
+  const [, setMeasured] = useState(0);
+
+  useEffect(() => {
+    const stage = stageRef.current;
+    const body = bodyRef.current;
+    if (!stage || !body) return;
+
+    // His silhouette doesn't fill the viewBox — there's headroom around it for
+    // the hat and the arms to swing through. Measuring the element alone would
+    // stop him a visible gap short of the glass, so discount that padding.
+    const ART_WIDTH = 0.76;
+    const ART_HEIGHT = 0.9;
+
+    const measure = () => {
+      travel.current = {
+        x: Math.max(0, (stage.offsetWidth - body.offsetWidth * ART_WIDTH) / 2),
+        y: Math.max(0, (stage.offsetHeight - body.offsetHeight * ART_HEIGHT) / 2),
+      };
+      setMeasured((n) => n + 1);
+    };
+
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(stage);
+    observer.observe(body);
+    return () => observer.disconnect();
+  }, []);
+
   const bodyX = useMotionValue(0);
   const bodyY = useMotionValue(0);
   const bodyRot = useMotionValue(0);
@@ -40,6 +77,8 @@ export function Dwarf({ intensity, damage, mood, impactSeed, reducedMotion }: Dw
 
   // Squash-and-stretch, pulsed on impact.
   const squash = useSpring(0, { stiffness: 700, damping: 16, mass: 0.5 });
+  /** True while he's held against the glass, so one contact fires one squash. */
+  const wallContact = useRef(false);
 
   useEffect(() => {
     if (impactSeed === 0 || reducedMotion) return;
@@ -55,9 +94,22 @@ export function Dwarf({ intensity, damage, mood, impactSeed, reducedMotion }: Dw
 
     // Incommensurable frequencies => organic, never-repeating wobble.
     if (i > 0.002) {
-      bodyX.set((Math.sin(s * 23.3) * 0.62 + Math.sin(s * 41.7 + 2.1) * 0.38) * 30 * i);
-      bodyY.set((Math.sin(s * 19.1 + 1.3) * 0.6 + Math.sin(s * 37.3 + 0.4) * 0.4) * 20 * i);
+      // Deliberately overshoots ±1 so hard shakes pin him against the glass
+      // instead of politely approaching it.
+      const rawX = (Math.sin(s * 23.3) * 0.62 + Math.sin(s * 41.7 + 2.1) * 0.38) * 1.45 * i;
+      const rawY = (Math.sin(s * 19.1 + 1.3) * 0.6 + Math.sin(s * 37.3 + 0.4) * 0.4) * 1.45 * i;
+
+      const clampedX = Math.max(-1, Math.min(1, rawX));
+      const clampedY = Math.max(-1, Math.min(1, rawY));
+
+      bodyX.set(clampedX * travel.current.x);
+      bodyY.set(clampedY * travel.current.y);
       bodyRot.set((Math.sin(s * 15.7 + 0.7) * 0.7 + Math.sin(s * 31.1 + 1.9) * 0.3) * 26 * i);
+
+      // Squash him against whichever wall he's pinned to.
+      const against = Math.abs(rawX) >= 1 || Math.abs(rawY) >= 1;
+      if (against && !wallContact.current) squash.set(1);
+      wallContact.current = against;
     } else if (bodyX.get() !== 0) {
       bodyX.set(0);
       bodyY.set(0);
@@ -111,12 +163,14 @@ export function Dwarf({ intensity, damage, mood, impactSeed, reducedMotion }: Dw
   const showStars = damage >= 2 && mood !== "idle";
 
   return (
-    <svg
-      viewBox="0 0 200 240"
-      className="dwarf-svg"
-      aria-hidden="true"
-      shapeRendering="geometricPrecision"
-    >
+    <div ref={stageRef} className="dwarf-stage">
+      <motion.div ref={bodyRef} className="dwarf-body" style={{ x: bodyX, y: bodyY }}>
+        <svg
+          viewBox="0 0 200 240"
+          className="dwarf-svg"
+          aria-hidden="true"
+          shapeRendering="geometricPrecision"
+        >
       <defs>
         <linearGradient id="d-hat" x1="0" y1="0" x2="0.35" y2="1">
           <stop offset="0%" stopColor="#e0663a" />
@@ -163,8 +217,6 @@ export function Dwarf({ intensity, damage, mood, impactSeed, reducedMotion }: Dw
       {/* Everything hangs off this one group so the whole dwarf moves as a unit. */}
       <motion.g
         style={{
-          x: bodyX,
-          y: bodyY,
           rotate: bodyRot,
           scaleX,
           scaleY,
@@ -346,6 +398,47 @@ export function Dwarf({ intensity, damage, mood, impactSeed, reducedMotion }: Dw
           </g>
         )}
 
+        {/* Black eye — the first injury that reads from across the room. */}
+        {damage >= 5 && (
+          <g>
+            <ellipse cx={86} cy={82} rx={13} ry={11} fill="url(#d-bruise)" />
+            <path d="M 76 90 q 10 6 20 0" fill="none" stroke="#6b4fa8" strokeWidth={2.2} strokeLinecap="round" opacity={0.7} />
+          </g>
+        )}
+
+        {/* Matching bruise on the other cheek, and one across the nose. */}
+        {damage >= 6 && (
+          <>
+            <ellipse cx={126} cy={92} rx={10} ry={7.5} fill="url(#d-bruise)" />
+            <g transform="rotate(12 100 97)">
+              <rect x={86} y={93} width={28} height={9} rx={2} fill="#f5e6c8" stroke="#1c130f" strokeWidth={2.4} />
+              <rect x={96} y={86} width={8} height={23} rx={2} fill="#e8d6b2" stroke="#1c130f" strokeWidth={2} />
+            </g>
+          </>
+        )}
+
+        {/* Hand wrapped. He has stopped bracing for it. */}
+        {damage >= 7 && (
+          <g>
+            <circle cx={161} cy={175} r={12.5} fill="#f7efdd" stroke="#1c130f" strokeWidth={3} />
+            <path d="M 151 170 L 171 178 M 151 178 L 171 170" stroke="#d9c9a6" strokeWidth={2.2} strokeLinecap="round" />
+          </g>
+        )}
+
+        {/* Ear plastered, hat visibly stitched back together. */}
+        {damage >= 8 && (
+          <g>
+            <rect x={56} y={87} width={16} height={8} rx={2} fill="#f5e6c8" stroke="#1c130f" strokeWidth={2.2} transform="rotate(-8 64 91)" />
+            <path
+              d="M 78 46 L 86 40 M 88 44 L 96 38 M 98 42 L 106 36"
+              stroke="#1c130f"
+              strokeWidth={2.6}
+              strokeLinecap="round"
+              opacity={0.75}
+            />
+          </g>
+        )}
+
         {/* ── Hat, on top of everything, sliding down as he takes a beating ─ */}
         <motion.g
           style={{
@@ -376,7 +469,9 @@ export function Dwarf({ intensity, damage, mood, impactSeed, reducedMotion }: Dw
 
         {showStars && <DizzyStars />}
       </motion.g>
-    </svg>
+        </svg>
+      </motion.div>
+    </div>
   );
 }
 

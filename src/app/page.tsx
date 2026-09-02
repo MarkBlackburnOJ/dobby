@@ -9,6 +9,9 @@ import { audio, haptic } from "@/lib/sound";
 import { speech } from "@/lib/speech";
 import { InstallPrompt } from "@/components/InstallPrompt";
 
+/** Eight tiers of visible regret, from one plaster to a stitched-up hat. */
+const MAX_DAMAGE = 8;
+
 export default function Home() {
   const reducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
   const [verdict, setVerdict] = useState<Verdict | null>(null);
@@ -36,7 +39,7 @@ export default function Home() {
       const next = pickVerdict(undefined, recentVerdicts);
       setVerdict(next);
       setMood("delivering");
-      setDamage(Math.min(damage + 1, 5));
+      setDamage(Math.min(damage + 1, MAX_DAMAGE));
       
       recentVerdicts.push(next.text);
       if (recentVerdicts.length > 8) recentVerdicts.shift();
@@ -71,7 +74,7 @@ export default function Home() {
       window.clearTimeout(protestTimeoutRef.current);
       protestTimeoutRef.current = window.setTimeout(() => setProtest(null), 280);
       
-      setDamage(Math.min(damage + 0.15, 5));
+      setDamage(Math.min(damage + 0.15, MAX_DAMAGE));
     },
   });
 
@@ -145,18 +148,18 @@ export default function Home() {
   }, [speechOn]);
 
   return (
-    <main className="h-full flex flex-col items-center justify-center px-4 py-4 relative overflow-hidden">
+    <main className="h-full flex flex-col items-center px-3 py-3 relative overflow-hidden">
       {/* Radial gradient backdrop */}
       <div className="absolute inset-0 pointer-events-none bg-gradient-to-br from-transparent via-transparent to-black/20" />
 
       {/* Main chamber */}
       <motion.div
-        className="w-full max-w-[min(24rem,calc(100dvh-19rem))] relative z-10"
+        className="flex-1 min-h-0 w-full relative z-10"
         animate={{ scale: mood === "shaking" ? 0.98 : 1 }}
         transition={{ duration: 0.12 }}
       >
         <div
-          className="w-full aspect-square rounded-3xl border-8 border-gray-700 bg-gradient-to-br from-gray-900 to-gray-950 flex items-center justify-center shadow-2xl relative overflow-hidden cursor-grab active:cursor-grabbing"
+          className="h-full w-full rounded-3xl border-4 border-gray-700 bg-gradient-to-br from-gray-900 to-gray-950 shadow-2xl relative overflow-hidden cursor-grab active:cursor-grabbing select-none touch-none"
           {...shakeApi.dragHandlers}
         >
           {/* Glass inner glow */}
