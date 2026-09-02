@@ -2,13 +2,16 @@
   "name": "dobby",
   "version": "1.0.0",
   "private": true,
-  "description": "Dobby the Session Dwarf — shake your phone, ruin his day, get an answer.",
+  "description": "Dobby the Session Dwarf \u2014 shake your phone, ruin his day, get an answer.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit"
+  },
+  "engines": {
+    "node": "22.x"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.58.0",
