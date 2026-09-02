@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Doddy says his verdicts out loud.
+ * Dobby says his verdicts out loud.
  *
  * Same principle as the rest of the audio in here: nothing ships as a binary,
  * the browser makes the noise. Voice quality varies wildly by platform, so we
@@ -9,7 +9,7 @@
  * lands somewhere near "small furious man sealed in a jar".
  */
 
-const SPEECH_KEY = "doddy:speech";
+const SPEECH_KEY = "dobby:speech";
 
 /**
  * Voices worth having, best first, matched loosely against name and lang.
@@ -24,7 +24,7 @@ const PREFERRED = [
   "en-gb",
 ];
 
-class DoddySpeech {
+class DobbySpeech {
   private voice: SpeechSynthesisVoice | null = null;
   private primed = false;
   enabled = true;
@@ -108,7 +108,7 @@ class DoddySpeech {
     }
   }
 
-  /** Deliver a line. Cancels anything already in Doddy's mouth. */
+  /** Deliver a line. Cancels anything already in Dobby's mouth. */
   say(text: string) {
     if (!this.supported || !this.enabled) return;
 
@@ -133,4 +133,4 @@ class DoddySpeech {
   }
 }
 
-export const speech = new DoddySpeech();
+export const speech = new DobbySpeech();

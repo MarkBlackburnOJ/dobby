@@ -1,4 +1,4 @@
--- Doddy session tracking: completely optional, gracefully degraded.
+-- Dobby session tracking: completely optional, gracefully degraded.
 -- The app works offline and falls back to local state if Supabase is unconfigured.
 
 CREATE TABLE IF NOT EXISTS verdicts (

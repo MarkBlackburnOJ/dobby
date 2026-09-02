@@ -1,8 +1,8 @@
 {
-  "name": "doddy",
+  "name": "dobby",
   "version": "1.0.0",
   "private": true,
-  "description": "Doddy the Decision Dwarf \u2014 shake your phone, ruin his day, get an answer.",
+  "description": "Dobby the Decision Dwarf \u2014 shake your phone, ruin his day, get an answer.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

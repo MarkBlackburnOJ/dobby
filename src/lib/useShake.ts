@@ -20,7 +20,7 @@ interface UseShakeOptions {
 
 // Tuned against real hardware feel: a purposeful wrist-flick reads ~12-25 m/s².
 const NOISE_FLOOR = 2.6; // m/s² of linear accel we treat as "not shaking"
-const HIT_FORCE = 5.5; // linear accel that counts as Doddy hitting the glass
+const HIT_FORCE = 5.5; // linear accel that counts as Dobby hitting the glass
 const HIT_REFRACTORY = 110; // ms between countable impacts
 const ENERGY_MAX = 46; // energy value that maps to intensity 1.0
 const TRIGGER_ENERGY = 26; // energy needed to shake an answer loose
@@ -34,7 +34,7 @@ export interface ShakeApi {
   /** True once we've actually received usable accelerometer data. */
   hasSensor: boolean;
   requestAccess: () => Promise<MotionPermission>;
-  /** Pointer handlers for shaking Doddy by hand (desktop / denied sensors). */
+  /** Pointer handlers for shaking Dobby by hand (desktop / denied sensors). */
   dragHandlers: {
     onPointerDown: (e: React.PointerEvent) => void;
     onPointerMove: (e: React.PointerEvent) => void;

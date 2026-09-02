@@ -1,7 +1,7 @@
 /**
- * Doddy's verdict bank.
+ * Dobby's verdict bank.
  *
- * This is the local fallback (and the seed data for Supabase). Doddy is a
+ * This is the local fallback (and the seed data for Supabase). Dobby is a
  * unionised mine-dwarf who has been sealed in a glass chamber and is shaken
  * for answers by strangers. He resents this. He answers anyway.
  */
