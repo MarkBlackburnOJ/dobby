@@ -24,14 +24,9 @@ export function InstallPrompt({ canPrompt }: { canPrompt: boolean }) {
   const [dismissed, setDismissed] = useState(true);
 
   useEffect(() => {
-    // No service worker, no install offer — Chrome requires one that handles
-    // fetch before it will consider the site installable at all.
-    if ("serviceWorker" in navigator) {
-      void navigator.serviceWorker.register("/sw.js").catch(() => {
-        /* an unregistered worker only costs us the install banner */
-      });
-    }
-
+    // The service worker is registered and kept current by <UpdatePrompt>, the
+    // single owner of the worker lifecycle. Here we only recall whether this
+    // person has already waved the install offer away.
     try {
       setDismissed(window.localStorage.getItem(DISMISS_KEY) === "1");
     } catch {

@@ -8,6 +8,7 @@ import { pickVerdict, pickOne, IDLE_MUTTERS, PROTESTS, TONE_META, type Verdict, 
 import { audio, haptic } from "@/lib/sound";
 import { speech } from "@/lib/speech";
 import { InstallPrompt } from "@/components/InstallPrompt";
+import { UpdatePrompt } from "@/components/UpdatePrompt";
 
 /** Eight tiers of visible regret, from one plaster to a stitched-up hat. */
 const MAX_DAMAGE = 8;
@@ -274,6 +275,10 @@ export default function Home() {
           No motion sensors — poke him or drag the chamber instead.
         </p>
       )}
+
+      {/* Keeps an installed copy current: a standalone PWA has no reload
+          button, so it offers a tap when a fresh deploy is waiting. */}
+      <UpdatePrompt />
 
       {/* Android's install offer. Held back until he has delivered at least
           one verdict, so we're asking someone who knows what they'd install. */}

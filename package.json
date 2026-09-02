@@ -5,6 +5,7 @@
   "description": "Dobby the Decision Dwarf \u2014 shake your phone, ruin his day, get an answer.",
   "scripts": {
     "dev": "next dev",
+    "prebuild": "node scripts/stamp-sw.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",

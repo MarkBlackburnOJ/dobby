@@ -3,19 +3,26 @@
  *
  * It exists mostly because Chrome will not offer to install a site without
  * one that handles fetch, but since it's here it may as well make him work
- * on the Underground.
+ * on the Underground — and let an installed copy notice when a fresh deploy
+ * has landed, since a standalone app has no reload button to reach for.
+ *
+ * BUILD_ID is rewritten by scripts/stamp-sw.mjs at build time, so every
+ * deploy ships a byte-different worker. That is what lets registration.update()
+ * detect a new version from a backgrounded app without a full relaunch.
  */
 
-const CACHE = "dobby-v1";
+const BUILD_ID = "__BUILD_ID__";
+const CACHE = "dobby-" + BUILD_ID;
 const PRECACHE = ["/", "/icon-192.png", "/icon-512.png", "/apple-touch-icon.png"];
 
 self.addEventListener("install", (event) => {
+  // No skipWaiting here: a new worker waits so the page can offer an Update
+  // pill rather than swapping the app out from under the user mid-shake.
   event.waitUntil(
     caches
       .open(CACHE)
       // Individually, so one 404 doesn't sink the whole install.
-      .then((cache) => Promise.allSettled(PRECACHE.map((url) => cache.add(url))))
-      .then(() => self.skipWaiting()),
+      .then((cache) => Promise.allSettled(PRECACHE.map((url) => cache.add(url)))),
   );
 });
 
@@ -26,6 +33,12 @@ self.addEventListener("activate", (event) => {
       .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
       .then(() => self.clients.claim()),
   );
+});
+
+// The page posts this when the user taps Update; we activate at once and the
+// resulting controllerchange reloads them onto the new version.
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SKIP_WAITING") self.skipWaiting();
 });
 
 self.addEventListener("fetch", (event) => {
