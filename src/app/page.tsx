@@ -222,7 +222,7 @@ export default function Home() {
           disabled={!shake.armed}
           className="px-6 py-3 rounded-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold transition-colors shadow-lg"
         >
-          Poke Dobby
+          Poke Doddy
         </button>
         <button
           onClick={toggleMute}
@@ -235,7 +235,7 @@ export default function Home() {
           <button
             onClick={toggleSpeech}
             className="px-4 py-3 rounded-full bg-gray-700 hover:bg-gray-600 text-white font-bold transition-colors shadow-lg"
-            aria-label={speechOn ? "Silence Dobby's voice" : "Let Dobby speak"}
+            aria-label={speechOn ? "Silence Doddy's voice" : "Let Doddy speak"}
             aria-pressed={speechOn}
           >
             {speechOn ? "🗣️" : "🤐"}
@@ -252,7 +252,7 @@ export default function Home() {
           exit={{ opacity: 0, y: 20 }}
         >
           <p className="text-sm font-medium mb-3">
-            Dobby needs motion sensors to detect shakes. Grant permission to begin.
+            Doddy needs motion sensors to detect shakes. Grant permission to begin.
           </p>
           <button
             onClick={requestPermission}
@@ -266,7 +266,7 @@ export default function Home() {
       {/* Degraded input banner (no sensors) */}
       {permission === "denied" && !showPermissionBanner && (
         <div className="fixed top-6 left-6 right-6 bg-gray-700/80 backdrop-blur-sm rounded-lg px-3 py-2 text-gray-300 text-xs z-30 max-w-sm">
-          📱 Use "Poke Dobby" or drag the chamber to shake (no motion sensors).
+          📱 Use "Poke Doddy" or drag the chamber to shake (no motion sensors).
         </div>
       )}
 

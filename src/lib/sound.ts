@@ -1,16 +1,16 @@
 "use client";
 
 /**
- * Every sound in Dobby is synthesized at runtime — there are no audio files in
+ * Every sound in Doddy is synthesized at runtime — there are no audio files in
  * this repo. Grunts are a sawtooth glide pushed through two formant bandpasses,
  * which is a cheap but convincing "uh!" from a small angry man.
  */
 
 type ToneName = "yes" | "no" | "maybe" | "chaotic";
 
-const MUTE_KEY = "dobby:muted";
+const MUTE_KEY = "doddy:muted";
 
-class DobbyAudio {
+class DoddyAudio {
   private ctx: AudioContext | null = null;
   private master: GainNode | null = null;
   private noiseBuffer: AudioBuffer | null = null;
@@ -66,7 +66,7 @@ class DobbyAudio {
     return buf;
   }
 
-  /** Dobby meeting the glass. Force 0→1. */
+  /** Doddy meeting the glass. Force 0→1. */
   thud(force = 0.6) {
     const r = this.ready();
     if (!r) return;
@@ -190,7 +190,7 @@ class DobbyAudio {
   }
 }
 
-export const audio = new DobbyAudio();
+export const audio = new DoddyAudio();
 
 /** Vibration is unsupported on iOS Safari — every call is best-effort. */
 export function haptic(pattern: number | number[]) {

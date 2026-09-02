@@ -2,11 +2,11 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Dobby — Session Dwarf",
+  title: "Doddy — Decision Dwarf",
   description: "Shake your phone. Ruin a dwarf's day. Get an answer.",
   appleWebApp: {
     capable: true,
-    title: "Dobby",
+    title: "Doddy",
     statusBarStyle: "black-translucent",
   },
 };

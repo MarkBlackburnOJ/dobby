@@ -24,7 +24,7 @@ interface DwarfProps {
 }
 
 /**
- * Dobby, rendered as one SVG with independently sprung parts.
+ * Doddy, rendered as one SVG with independently sprung parts.
  *
  * The trick that sells the whole thing is drag: the body is driven directly by
  * shake energy, while the hat, beard, arms and legs follow it through springs

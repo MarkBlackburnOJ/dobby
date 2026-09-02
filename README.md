@@ -1,6 +1,6 @@
-# Dobby
+# Doddy
 
-**Dobby** is a session dwarf shake oracle built with React 19, Next.js 16, and Framer Motion. Shake your phone (or drag the chamber on desktop), and Dobby delivers a sarcastic answer from his glass chamber.
+**Doddy** is a decision dwarf shake oracle built with React 19, Next.js 16, and Framer Motion. Shake your phone (or drag the chamber on desktop), and Doddy delivers a sarcastic answer from his glass chamber.
 
 **Live demo:** https://dobby-eta.vercel.app
 
@@ -12,7 +12,7 @@ npm run dev
 # Visit http://localhost:3000
 ```
 
-Grant motion sensor permission on iOS, then shake your device. On desktop, use the "Poke Dobby" button or drag the chamber to simulate shaking.
+Grant motion sensor permission on iOS, then shake your device. On desktop, use the "Poke Doddy" button or drag the chamber to simulate shaking.
 
 ## Features
 
