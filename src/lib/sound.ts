@@ -6,6 +6,8 @@
  * which is a cheap but convincing "uh!" from a small angry man.
  */
 
+import type { ImpactKind } from "./useShake";
+
 type ToneName = "yes" | "no" | "maybe" | "chaotic";
 
 const MUTE_KEY = "dobby:muted";
@@ -158,6 +160,81 @@ class DobbyAudio {
       osc.start(t);
       osc.stop(t + 0.7);
     });
+  }
+
+  /** A filtered burst of noise — the building block for taps and cracks. */
+  private burst(freq: number, q: number, vol: number, dur: number) {
+    const r = this.ready();
+    if (!r) return;
+    const { ctx, master } = r;
+    const t = ctx.currentTime;
+    const src = ctx.createBufferSource();
+    src.buffer = this.noise(ctx);
+    const bp = ctx.createBiquadFilter();
+    bp.type = "bandpass";
+    bp.frequency.value = freq;
+    bp.Q.value = q;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    src.connect(bp).connect(g).connect(master);
+    src.start(t);
+    src.stop(t + dur + 0.02);
+  }
+
+  /** A deep, heavy version of the thud, for genuinely violent blows. */
+  boom(force = 1) {
+    const r = this.ready();
+    if (!r) return;
+    const { ctx, master } = r;
+    const t = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(110 + force * 40, t);
+    osc.frequency.exponentialRampToValueAtTime(28, t + 0.28);
+    g.gain.setValueAtTime(0.28 + force * 0.4, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.4);
+    osc.connect(g).connect(master);
+    osc.start(t);
+    osc.stop(t + 0.42);
+  }
+
+  /** Glass cracking — a sharp, bright shatter transient. */
+  crack(force = 1) {
+    this.burst(3200 + force * 1800, 0.6, 0.18 + force * 0.28, 0.14);
+    this.burst(6200, 1.4, 0.12 + force * 0.2, 0.08);
+  }
+
+  /**
+   * One blow, coloured by how it was thrown. This is what makes a gentle
+   * jiggle and a full-force slam feel like different events, not the same
+   * thud at two volumes.
+   */
+  impact(kind: ImpactKind, force = 0.6, axis: "x" | "y" | "z" = "y") {
+    // Axis nudges the tone a touch: side-to-side reads brighter than up-down.
+    const bright = axis === "x" ? 1.12 : axis === "z" ? 0.9 : 1;
+    switch (kind) {
+      case "tap":
+        this.thud(force * 0.4);
+        this.burst(2200 * bright, 0.7, 0.05 + force * 0.06, 0.05);
+        break;
+      case "whack":
+        this.thud(force);
+        this.grunt(force);
+        break;
+      case "rattle":
+        this.thud(force * 0.5);
+        this.glass(force * 0.7);
+        this.burst(2600 * bright, 1.1, 0.05 + force * 0.05, 0.04);
+        break;
+      case "slam":
+        this.boom(force);
+        this.crack(force);
+        this.glass(force);
+        this.grunt(Math.min(force * 1.25, 1));
+        break;
+    }
   }
 
   /** Sting under the verdict card. Each tone gets its own little motif. */

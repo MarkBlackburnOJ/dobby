@@ -15,11 +15,13 @@ export type Mood = "idle" | "shaking" | "delivering";
 interface DwarfProps {
   /** 0→1 shake energy, updated outside React. */
   intensity: MotionValue<number>;
-  /** 0→12. Accumulated abuse; plasters and bruises give way to lost limbs. */
+  /** 0→25. Accumulated abuse: plasters, blood, dismemberment, then the afterlife. */
   damage: number;
   mood: Mood;
   /** Bumped on every glass impact to fire the squash + flash. */
   impactSeed: number;
+  /** 0→1 magnitude of the latest impact, so a slam squashes harder than a tap. */
+  impactForce: number;
   reducedMotion: boolean;
 }
 
@@ -32,7 +34,7 @@ interface DwarfProps {
  * lagging spring gives proper follow-through — the beard swings after the head
  * stops, the arms flail a beat late — without simulating any real physics.
  */
-export function Dwarf({ intensity, damage, mood, impactSeed, reducedMotion }: DwarfProps) {
+export function Dwarf({ intensity, damage, mood, impactSeed, impactForce, reducedMotion }: DwarfProps) {
   const stageRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
 
@@ -82,10 +84,11 @@ export function Dwarf({ intensity, damage, mood, impactSeed, reducedMotion }: Dw
 
   useEffect(() => {
     if (impactSeed === 0 || reducedMotion) return;
-    squash.set(1);
-    const id = window.setTimeout(() => squash.set(0), 70);
+    // A tap barely dents him; a slam flattens him against the glass.
+    squash.set(Math.min(0.5 + impactForce * 0.7, 1));
+    const id = window.setTimeout(() => squash.set(0), 60 + impactForce * 40);
     return () => window.clearTimeout(id);
-  }, [impactSeed, squash, reducedMotion]);
+  }, [impactSeed, impactForce, squash, reducedMotion]);
 
   // ── Drive the body from shake energy ────────────────────────────────────
   useAnimationFrame((t) => {
@@ -246,7 +249,7 @@ export function Dwarf({ intensity, damage, mood, impactSeed, reducedMotion }: Dw
         >
           {[78, 122].map((x, i) => (
             <g key={x}>
-              {i === 0 && damage >= 11 ? (
+              {((i === 0 && damage >= 11) || (i === 1 && damage >= 18)) ? (
                 <g>
                   {/* Left leg's a long wooden peg — pointed and pale so it juts
                       clear of the beard and boot, and you can see the damage done. */}
@@ -337,30 +340,31 @@ export function Dwarf({ intensity, damage, mood, impactSeed, reducedMotion }: Dw
         <motion.g
           style={{ rotate: armRotMirror, transformBox: "view-box", transformOrigin: "136px 138px" }}
         >
-          <path
-            d="M 136 134 C 152 142, 160 156, 160 170"
-            fill="none"
-            stroke="#1c130f"
-            strokeWidth={17}
-            strokeLinecap="round"
-          />
-          <path
-            d="M 136 134 C 152 142, 160 156, 160 170"
-            fill="none"
-            stroke="url(#d-tunic)"
-            strokeWidth={11.5}
-            strokeLinecap="round"
-          />
-          {damage >= 10 ? (
+          {damage >= 19 ? (
             <g>
-              {/* Hand's gone; it's a hook now. He insists it's an upgrade. */}
-              <circle cx={161} cy={170} r={6.5} fill="#6b4a30" stroke="#1c130f" strokeWidth={3} />
-              {damage >= 14 && <ellipse cx={161} cy={170} rx={5} ry={3.6} fill="#a81c1c" opacity={0.85} />}
-              <path d="M 161 173 v 9 a 7 7 0 1 0 9 -3" fill="none" stroke="#c2ccd6" strokeWidth={5} strokeLinecap="round" />
-              <path d="M 161 173 v 9 a 7 7 0 1 0 9 -3" fill="none" stroke="#7c8896" strokeWidth={1.6} strokeLinecap="round" opacity={0.5} />
+              {/* The other arm goes too — a second stump. He's mostly torso now. */}
+              <path d="M 136 134 C 143 140, 147 148, 147 157" fill="none" stroke="#1c130f" strokeWidth={17} strokeLinecap="round" />
+              <path d="M 136 134 C 143 140, 147 148, 147 157" fill="none" stroke="url(#d-tunic)" strokeWidth={11.5} strokeLinecap="round" />
+              <circle cx={147} cy={159} r={9.5} fill="#f7efdd" stroke="#1c130f" strokeWidth={3} />
+              <path d="M 138 155 l 17 3 M 139 162 l 16 -3" stroke="#d9c9a6" strokeWidth={2} strokeLinecap="round" />
+              {damage >= 22 && <ellipse cx={147} cy={160} rx={6} ry={5} fill="#9e1a1a" opacity={0.82} />}
             </g>
           ) : (
-            <circle cx={161} cy={175} r={11} fill="url(#d-skin)" stroke="#1c130f" strokeWidth={3.2} />
+            <>
+              <path d="M 136 134 C 152 142, 160 156, 160 170" fill="none" stroke="#1c130f" strokeWidth={17} strokeLinecap="round" />
+              <path d="M 136 134 C 152 142, 160 156, 160 170" fill="none" stroke="url(#d-tunic)" strokeWidth={11.5} strokeLinecap="round" />
+              {damage >= 10 ? (
+                <g>
+                  {/* Hand's gone; it's a hook now. He insists it's an upgrade. */}
+                  <circle cx={161} cy={170} r={6.5} fill="#6b4a30" stroke="#1c130f" strokeWidth={3} />
+                  {damage >= 14 && <ellipse cx={161} cy={170} rx={5} ry={3.6} fill="#a81c1c" opacity={0.85} />}
+                  <path d="M 161 173 v 9 a 7 7 0 1 0 9 -3" fill="none" stroke="#c2ccd6" strokeWidth={5} strokeLinecap="round" />
+                  <path d="M 161 173 v 9 a 7 7 0 1 0 9 -3" fill="none" stroke="#7c8896" strokeWidth={1.6} strokeLinecap="round" opacity={0.5} />
+                </g>
+              ) : (
+                <circle cx={161} cy={175} r={11} fill="url(#d-skin)" stroke="#1c130f" strokeWidth={3.2} />
+              )}
+            </>
           )}
         </motion.g>
 
@@ -559,6 +563,48 @@ export function Dwarf({ intensity, damage, mood, impactSeed, reducedMotion }: Dw
           </InjuryPop>
         )}
 
+        {/* ── Beyond a wreck ─────────────────────────────────────────────── */}
+        {/* The other eye goes. He is now, formally, not looking. */}
+        {damage >= 17 && (
+          <InjuryPop reduced={reducedMotion}>
+            <path d="M 130 60 L 62 76" stroke="#1c130f" strokeWidth={4} strokeLinecap="round" opacity={0.85} />
+            <ellipse cx={114} cy={82} rx={12.5} ry={11} fill="#17110d" stroke="#1c130f" strokeWidth={2.6} />
+            <ellipse cx={110} cy={78} rx={3} ry={2} fill="#4a382b" opacity={0.6} />
+          </InjuryPop>
+        )}
+
+        {/* Teeth on the floor of the jar. He was rather attached to those. */}
+        {damage >= 20 && (
+          <InjuryPop reduced={reducedMotion}>
+            <path d="M 92 124 q 8 6 16 0" fill="none" stroke="#8f1414" strokeWidth={3} strokeLinecap="round" />
+            <rect x={88} y={226} width={5} height={6} rx={1} fill="#fdf6e6" stroke="#1c130f" strokeWidth={1.4} transform="rotate(18 90 229)" />
+            <rect x={112} y={229} width={5} height={6} rx={1} fill="#fdf6e6" stroke="#1c130f" strokeWidth={1.4} transform="rotate(-12 114 232)" />
+            <rect x={100} y={231} width={5} height={5} rx={1} fill="#f3e9d2" stroke="#1c130f" strokeWidth={1.3} />
+          </InjuryPop>
+        )}
+
+        {/* Head wrapped like a relic. The nose refuses to be contained. */}
+        {damage >= 21 && (
+          <InjuryPop reduced={reducedMotion}>
+            <path d="M 60 72 L 140 62" fill="none" stroke="#efe6d2" strokeWidth={9} strokeLinecap="round" />
+            <path d="M 58 84 L 142 78" fill="none" stroke="#efe6d2" strokeWidth={9} strokeLinecap="round" />
+            <path d="M 62 95 L 138 91" fill="none" stroke="#e7dcc4" strokeWidth={8} strokeLinecap="round" />
+            <ellipse cx={126} cy={80} rx={5} ry={4} fill="#b21f1f" opacity={0.85} />
+            <ellipse cx={74} cy={73} rx={4} ry={3} fill="#9e1a1a" opacity={0.8} />
+          </InjuryPop>
+        )}
+
+        {/* Bound together at the middle, over everything, with visible stitches. */}
+        {damage >= 22 && (
+          <InjuryPop reduced={reducedMotion}>
+            <path d="M 60 168 Q 100 176 140 168 L 140 181 Q 100 189 60 181 Z" fill="#e7dcc4" stroke="#1c130f" strokeWidth={2.4} opacity={0.96} />
+            <ellipse cx={100} cy={175} rx={7} ry={4} fill="#9e1a1a" opacity={0.8} />
+            {[74, 90, 106, 122].map((x) => (
+              <path key={x} d={`M ${x - 4} 170 L ${x + 4} 180 M ${x - 4} 180 L ${x + 4} 170`} stroke="#1c130f" strokeWidth={2} strokeLinecap="round" opacity={0.7} />
+            ))}
+          </InjuryPop>
+        )}
+
         {/* ── Hat, on top of everything, sliding down as he takes a beating ─ */}
         <motion.g
           style={{
@@ -587,22 +633,25 @@ export function Dwarf({ intensity, damage, mood, impactSeed, reducedMotion }: Dw
           <circle cx={165} cy={70} r={10} fill="#f7efdd" stroke="#1c130f" strokeWidth={3.2} />
         </motion.g>
 
+        {/* Tiers 23–25: the soul gives up and starts to leave. */}
+        <Afterlife damage={damage} reduced={reducedMotion} />
+
         {showStars && <DizzyStars />}
 
         {/* Blood flies on impact once he's actually bleeding. Keyed so each
             glass hit replays the burst. */}
         {!reducedMotion && damage >= 13 && impactSeed > 0 && (
           <motion.g key={impactSeed}>
-            {BLOOD_SPRAY.map((d, k) => (
+            {BLOOD_SPRAY.slice(0, Math.max(3, Math.round(impactForce * BLOOD_SPRAY.length))).map((d, k) => (
               <motion.circle
                 key={k}
                 cx={100}
                 cy={104}
-                r={d.r}
+                r={d.r * (0.7 + impactForce * 0.6)}
                 fill="#c11f1f"
                 initial={{ x: 0, y: 0, opacity: 0.9 }}
-                animate={{ x: d.x, y: d.y, opacity: 0 }}
-                transition={{ duration: 0.45, ease: "easeOut" }}
+                animate={{ x: d.x * (0.6 + impactForce * 0.8), y: d.y * (0.6 + impactForce * 0.8), opacity: 0 }}
+                transition={{ duration: 0.4 + impactForce * 0.2, ease: "easeOut" }}
               />
             ))}
           </motion.g>
@@ -714,6 +763,57 @@ function BloodDrip({ x, y, delay = 0, reduced }: { x: number; y: number; delay?:
       animate={{ y: [0, 22], opacity: [0, 1, 1, 0] }}
       transition={{ duration: 1.9, repeat: Infinity, delay, ease: "easeIn", times: [0, 0.12, 0.72, 1] }}
     />
+  );
+}
+
+function Afterlife({ damage, reduced }: { damage: number; reduced: boolean }) {
+  if (damage < 23) return null;
+  const halo = damage >= 25 ? 1 : damage >= 24 ? 0.75 : 0.45;
+  const ghost = damage >= 25 ? 0.6 : damage >= 24 ? 0.48 : 0.36;
+  return (
+    <g>
+      {/* Halo, brightening as he lets go. */}
+      <motion.ellipse
+        cx={100}
+        cy={7}
+        rx={26}
+        ry={6}
+        fill="none"
+        stroke="#ffe680"
+        strokeWidth={4}
+        style={{ opacity: halo }}
+        animate={reduced ? undefined : { opacity: [halo * 0.6, halo, halo * 0.6] }}
+        transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
+      />
+      {/* The ghost, bobbing free of the body. */}
+      <motion.g
+        animate={reduced ? undefined : { y: [0, -9, 0], opacity: [ghost * 0.7, ghost, ghost * 0.7] }}
+        transition={{ duration: 3.4, repeat: Infinity, ease: "easeInOut" }}
+        style={{ opacity: ghost }}
+      >
+        <path
+          d="M 100 34 C 84 34 79 48 79 62 L 79 84 q 6 -6 11 0 q 5 6 11 0 q 6 -6 11 0 L 121 62 C 121 48 116 34 100 34 Z"
+          fill="#e6f4ff"
+          stroke="#bcd8ea"
+          strokeWidth={2}
+        />
+        <path d="M 91 55 l 6 6 m 0 -6 l -6 6" stroke="#5b6b78" strokeWidth={2} strokeLinecap="round" />
+        <path d="M 103 55 l 6 6 m 0 -6 l -6 6" stroke="#5b6b78" strokeWidth={2} strokeLinecap="round" />
+        <path d="M 94 72 q 6 5 12 0" fill="none" stroke="#5b6b78" strokeWidth={2} strokeLinecap="round" />
+      </motion.g>
+      {/* Flies, once it's properly over. */}
+      {damage >= 24 &&
+        [0, 1, 2].map((i) => (
+          <motion.g
+            key={i}
+            animate={reduced ? undefined : { rotate: 360 }}
+            transition={{ duration: 2.4 + i * 0.5, repeat: Infinity, ease: "linear" }}
+            style={{ transformBox: "view-box", transformOrigin: "100px 54px" }}
+          >
+            <ellipse cx={100 + 30 - i * 4} cy={54 - i * 7} rx={2.1} ry={1.4} fill="#1c130f" />
+          </motion.g>
+        ))}
+    </g>
   );
 }
 

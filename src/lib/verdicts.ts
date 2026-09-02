@@ -210,6 +210,28 @@ export const VERDICTS: Verdict[] = [
   { text: "Yes. No. It doesn't matter. Nothing does. Anyway — best of luck!", tone: "chaotic", weight: 2 },
   { text: "Sell the lot, fake your death. I'll vouch for you; I owe the world nothing.", tone: "chaotic" },
   { text: "The omens say 'not our department'. Try screaming into a deep well.", tone: "chaotic", weight: 2 },
+
+// ── A twenty more, purely for the wit of it ───────────────────────────
+  { text: "Aye. Not because it's wise — because you'll be unbearable until you try.", tone: "yes", weight: 2 },
+  { text: "Yes. I've run the numbers. I can't count, but yes.", tone: "yes", weight: 2 },
+  { text: "Do it. History remembers the bold and misfiles the sensible.", tone: "yes" },
+  { text: "Aye. The worst that happens is a story. Go and get me a story.", tone: "yes", weight: 2 },
+  { text: "Yes. Even a stopped dwarf is right twice a day. This is one of them.", tone: "yes" },
+  { text: "No. I'd explain, but you'd argue, and I'm concussed.", tone: "no", weight: 2 },
+  { text: "Nay. That's a 'seemed like a good idea at the time' in the making.", tone: "no", weight: 2 },
+  { text: "No. Trust the dwarf in the jar. Low bar, and I still clear it.", tone: "no" },
+  { text: "Absolutely not. I've a bad feeling, and it's not only the nausea.", tone: "no", weight: 2 },
+  { text: "No. Sleep on it. Then sleep on it again. Then no.", tone: "no" },
+  { text: "Maybe. The universe is buffering. Try me in a moment.", tone: "maybe", weight: 2 },
+  { text: "Could go either way — and knowing you, it'll find a third.", tone: "maybe", weight: 2 },
+  { text: "Hmm. Ask me one I can't answer with a shrug and a groan.", tone: "maybe" },
+  { text: "Perhaps. I'm a rock in a jar, not a life coach. But perhaps.", tone: "maybe", weight: 2 },
+  { text: "Mmm. There's a sixty percent chance it's fifty-fifty.", tone: "maybe" },
+  { text: "Consult the goat. There's always a goat. Find the goat.", tone: "chaotic", weight: 2 },
+  { text: "The answer is yes, spelled backwards, on a Thursday. Good luck.", tone: "chaotic" },
+  { text: "I outsourced this one to the beard. The beard says mind your business.", tone: "chaotic", weight: 2 },
+  { text: "Reply hazy. Also I've just been dropped. Reply hazier.", tone: "chaotic", weight: 2 },
+  { text: "Do it, film it, and tell no one it was my idea. Especially the goat.", tone: "chaotic" },
 ];
 
 /** Yelled mid-shake, in a speech bubble. Short. Loud. */
@@ -293,14 +315,22 @@ export const TONE_META: Record<Tone, { label: string; accent: string; glow: stri
  * Weighted pick that refuses to repeat anything in `recent`.
  * Falls back to the unfiltered pool if the caller has exhausted the bank.
  */
-export function pickVerdict(pool: Verdict[] = VERDICTS, recent: string[] = []): Verdict {
+export function pickVerdict(
+  pool: Verdict[] = VERDICTS,
+  recent: string[] = [],
+  bias?: Partial<Record<Tone, number>>,
+): Verdict {
   const fresh = pool.filter((v) => !recent.includes(v.text));
   const candidates = fresh.length > 0 ? fresh : pool;
 
-  const total = candidates.reduce((sum, v) => sum + (v.weight ?? 1), 0);
+  // Weight by the line's own weight, scaled by any tone bias the shake asks
+  // for — a furious shake tips the odds toward NAY and chaos, a gentle one
+  // toward AYE and a considered HMMN.
+  const weightOf = (v: Verdict) => (v.weight ?? 1) * (bias?.[v.tone] ?? 1);
+  const total = candidates.reduce((sum, v) => sum + weightOf(v), 0);
   let roll = Math.random() * total;
   for (const v of candidates) {
-    roll -= v.weight ?? 1;
+    roll -= weightOf(v);
     if (roll <= 0) return v;
   }
   return candidates[candidates.length - 1];

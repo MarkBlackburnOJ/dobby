@@ -3,15 +3,29 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Dwarf } from "@/components/Dwarf";
-import { useShake } from "@/lib/useShake";
+import { useShake, type ImpactKind } from "@/lib/useShake";
 import { pickVerdict, pickOne, IDLE_MUTTERS, PROTESTS, TONE_META, type Verdict, type Tone } from "@/lib/verdicts";
 import { audio, haptic } from "@/lib/sound";
 import { speech } from "@/lib/speech";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { UpdatePrompt } from "@/components/UpdatePrompt";
 
-/** Sixteen tiers of visible regret, from one plaster to a bleeding, dismembered wreck. */
-const MAX_DAMAGE = 16;
+/** Twenty-five tiers of visible regret: one plaster, then blood, dismemberment, and the afterlife. */
+const MAX_DAMAGE = 25;
+
+/** Each kind of blow lands differently — its own vibration and its own bite. */
+const HIT_HAPTICS: Record<ImpactKind, number | number[]> = {
+  tap: 18,
+  whack: [30, 50, 25],
+  rattle: [12, 18, 12, 18, 12],
+  slam: [70, 40, 90],
+};
+const HIT_DAMAGE: Record<ImpactKind, number> = {
+  tap: 0.06,
+  whack: 0.16,
+  rattle: 0.1,
+  slam: 0.34,
+};
 
 export default function Home() {
   const reducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
@@ -19,6 +33,7 @@ export default function Home() {
   const [mood, setMood] = useState<"idle" | "shaking" | "delivering">("idle");
   const [damage, setDamage] = useState(0);
   const [impactSeed, setImpactSeed] = useState(0);
+  const [impactForce, setImpactForce] = useState(0);
   const [shake, setShake] = useState({ armed: verdict === null });
   const [permission, setPermission] = useState<"prompt" | "granted" | "denied" | "unsupported">("prompt");
   const [showPermissionBanner, setShowPermissionBanner] = useState(false);
@@ -32,22 +47,29 @@ export default function Home() {
 
   const shakeApi = useShake({
     armed: shake.armed,
-    onTrigger: ({ intensity }) => {
+    onTrigger: ({ style }) => {
       if (!shake.armed) return;
       audio.unlock();
       speech.unlock();
       
-      const next = pickVerdict(undefined, recentVerdicts);
+      // A gentle nudge leans kind; a violent thrashing leans cruel and chaotic.
+      const bias =
+        style.fury > 0.6
+          ? { no: 1.8, chaotic: 1.7, yes: 0.6 }
+          : style.fury < 0.25
+            ? { yes: 1.7, maybe: 1.4, no: 0.7 }
+            : undefined;
+      const next = pickVerdict(undefined, recentVerdicts, bias);
       setVerdict(next);
       setMood("delivering");
-      setDamage(Math.min(damage + 1, MAX_DAMAGE));
+      setDamage((d) => Math.min(d + 1 + style.fury * 0.8, MAX_DAMAGE));
       
       recentVerdicts.push(next.text);
       if (recentVerdicts.length > 8) recentVerdicts.shift();
       setRecentVerdicts([...recentVerdicts]);
       
       audio.verdict(next.tone);
-      haptic([50, 100, 30, 100]);
+      haptic(style.fury > 0.5 ? [60, 110, 40, 130] : [40, 80, 30, 80]);
 
       // Let the sting land first — he talks over its tail, not through it.
       window.clearTimeout(speechTimeoutRef.current);
@@ -62,20 +84,19 @@ export default function Home() {
       }, 3800);
       return () => window.clearTimeout(id);
     },
-    onHit: (force) => {
+    onHit: ({ force, kind, axis }) => {
       audio.unlock();
       speech.unlock();
-      audio.thud(force);
-      audio.grunt(force);
-      audio.glass(force);
-      haptic([30, 60]);
+      audio.impact(kind, force, axis);
+      haptic(HIT_HAPTICS[kind]);
       setImpactSeed((x) => x + 1);
+      setImpactForce(force);
       
       setProtest(pickOne(PROTESTS));
       window.clearTimeout(protestTimeoutRef.current);
       protestTimeoutRef.current = window.setTimeout(() => setProtest(null), 280);
       
-      setDamage(Math.min(damage + 0.15, MAX_DAMAGE));
+      setDamage((d) => Math.min(d + HIT_DAMAGE[kind] * (0.6 + force * 0.8), MAX_DAMAGE));
     },
   });
 
@@ -171,6 +192,7 @@ export default function Home() {
             damage={damage}
             mood={mood}
             impactSeed={impactSeed}
+            impactForce={impactForce}
             reducedMotion={reducedMotion}
           />
 

@@ -10,17 +10,39 @@ interface DeviceMotionEventCtor {
   requestPermission?: () => Promise<"granted" | "denied">;
 }
 
+export type ImpactKind = "tap" | "whack" | "rattle" | "slam";
+
+/** A single glass impact, classified by how it was thrown. */
+export interface Impact {
+  /** 0→1 magnitude. */
+  force: number;
+  kind: ImpactKind;
+  /** Dominant axis of the blow — a little audio variation rides on it. */
+  axis: "x" | "y" | "z";
+}
+
+/** The character of a whole shake, summarised when a verdict shakes loose. */
+export interface ShakeStyle {
+  kind: ImpactKind;
+  /** 0→1 hardest blow of the shake. */
+  peak: number;
+  /** 0→1 overall aggression — biases which answers surface. */
+  fury: number;
+}
+
 interface UseShakeOptions {
   /** While false, energy still decays but never fires a verdict. */
   armed: boolean;
-  onTrigger: (payload: { intensity: number; hits: number }) => void;
+  onTrigger: (payload: { intensity: number; hits: number; style: ShakeStyle }) => void;
   /** Fired on each distinct impact — drives impact flashes, thuds, haptics. */
-  onHit?: (force: number) => void;
+  onHit?: (impact: Impact) => void;
 }
 
 // Tuned against real hardware feel: a purposeful wrist-flick reads ~12-25 m/s².
 const NOISE_FLOOR = 2.6; // m/s² of linear accel we treat as "not shaking"
 const HIT_FORCE = 5.5; // linear accel that counts as Dobby hitting the glass
+const WHACK_FORCE = 9; // a solid, single blow
+const SLAM_FORCE = 14; // a genuinely violent one
 const HIT_REFRACTORY = 110; // ms between countable impacts
 const ENERGY_MAX = 46; // energy value that maps to intensity 1.0
 const TRIGGER_ENERGY = 26; // energy needed to shake an answer loose
@@ -51,6 +73,10 @@ export function useShake({ armed, onTrigger, onHit }: UseShakeOptions): ShakeApi
 
   const energy = useRef(0);
   const hits = useRef(0);
+  const recentHits = useRef<number[]>([]);
+  const peakForce = useRef(0);
+  const slamCount = useRef(0);
+  const rattleCount = useRef(0);
   const gravity = useRef({ x: 0, y: 0, z: 0 });
   const gravitySeeded = useRef(false);
   const lastHitAt = useRef(0);
@@ -69,15 +95,37 @@ export function useShake({ armed, onTrigger, onHit }: UseShakeOptions): ShakeApi
 
   /** Shared entry point for every input source: sensor, pointer, button. */
   const addEnergy = useCallback(
-    (force: number) => {
+    (force: number, axis: "x" | "y" | "z" = "y") => {
       if (force <= 0) return;
       energy.current = Math.min(energy.current + force, ENERGY_MAX * 1.35);
+      peakForce.current = Math.max(peakForce.current, force);
 
       const now = performance.now();
       if (force >= HIT_FORCE && now - lastHitAt.current > HIT_REFRACTORY) {
         lastHitAt.current = now;
         hits.current += 1;
-        hitRef.current?.(Math.min(force / 18, 1));
+
+        // Cadence: blows landed in the last half-second. A fast flurry reads as
+        // a rattle no matter how hard any single blow is.
+        const rh = recentHits.current;
+        rh.push(now);
+        while (rh.length && now - rh[0] > 700) rh.shift();
+        const cadence = rh.reduce((n, ts) => (now - ts <= 500 ? n + 1 : n), 0);
+
+        let kind: ImpactKind;
+        if (cadence >= 3) {
+          kind = "rattle";
+          rattleCount.current += 1;
+        } else if (force >= SLAM_FORCE) {
+          kind = "slam";
+          slamCount.current += 1;
+        } else if (force >= WHACK_FORCE) {
+          kind = "whack";
+        } else {
+          kind = "tap";
+        }
+
+        hitRef.current?.({ force: Math.min(force / 18, 1), kind, axis });
       }
     },
     [],
@@ -115,7 +163,13 @@ export function useShake({ armed, onTrigger, onHit }: UseShakeOptions): ShakeApi
       const lz = a.z - g.z;
       const magnitude = Math.hypot(lx, ly, lz);
 
-      if (magnitude > NOISE_FLOOR) addEnergy((magnitude - NOISE_FLOOR) * 0.55);
+      if (magnitude > NOISE_FLOOR) {
+        const ax = Math.abs(lx);
+        const ay = Math.abs(ly);
+        const az = Math.abs(lz);
+        const axis = ax >= ay && ax >= az ? "x" : ay >= az ? "y" : "z";
+        addEnergy((magnitude - NOISE_FLOOR) * 0.55, axis);
+      }
     };
 
     window.addEventListener("devicemotion", onMotion);
@@ -137,6 +191,10 @@ export function useShake({ armed, onTrigger, onHit }: UseShakeOptions): ShakeApi
       if (energy.current < 0.05) {
         energy.current = 0;
         hits.current = 0;
+        recentHits.current.length = 0;
+        peakForce.current = 0;
+        slamCount.current = 0;
+        rattleCount.current = 0;
       }
 
       intensity.set(Math.min(energy.current / ENERGY_MAX, 1));
@@ -147,10 +205,29 @@ export function useShake({ armed, onTrigger, onHit }: UseShakeOptions): ShakeApi
         now - lastFireAt.current > COOLDOWN_MS
       ) {
         lastFireAt.current = now;
+
+        const peak = Math.min(peakForce.current / 20, 1);
+        const fury = Math.min(peak * 0.7 + slamCount.current * 0.12, 1);
+        const kind: ImpactKind =
+          rattleCount.current >= 2
+            ? "rattle"
+            : slamCount.current >= 1 || peak >= 0.7
+              ? "slam"
+              : peak >= 0.45
+                ? "whack"
+                : "tap";
+
         triggerRef.current({
           intensity: Math.min(energy.current / ENERGY_MAX, 1),
           hits: Math.max(hits.current, 1),
+          style: { kind, peak, fury },
         });
+
+        // Fresh slate for the next shake's character.
+        peakForce.current = 0;
+        slamCount.current = 0;
+        rattleCount.current = 0;
+        recentHits.current.length = 0;
       }
 
       frame = requestAnimationFrame(tick);
@@ -202,11 +279,13 @@ export function useShake({ armed, onTrigger, onHit }: UseShakeOptions): ShakeApi
       const dt = now - lastPoint.current.t;
       if (dt < 8) return;
 
-      const dist = Math.hypot(e.clientX - lastPoint.current.x, e.clientY - lastPoint.current.y);
+      const dx = e.clientX - lastPoint.current.x;
+      const dy = e.clientY - lastPoint.current.y;
+      const dist = Math.hypot(dx, dy);
       lastPoint.current = { x: e.clientX, y: e.clientY, t: now };
 
       // px/ms → roughly the same scale the accelerometer produces.
-      addEnergy(Math.min((dist / dt) * 7, 16));
+      addEnergy(Math.min((dist / dt) * 7, 16), Math.abs(dx) >= Math.abs(dy) ? "x" : "y");
     },
     [addEnergy],
   );
