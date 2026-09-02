@@ -20,7 +20,6 @@ Grant motion sensor permission on iOS, then shake your device. On desktop, use t
 - **Shake Detection**: DeviceMotion (iOS/Android) + pointer fallback (desktop)
 - **100% Synthesized Audio**: WebAudio grunts, thuds, glass, and stings
 - **63-Line Verdict Bank**: Weighted random sampling, refuses to repeat
-- **Optional Supabase Persistence**: Works offline; DB is optional
 - **Dark/Light Theme**: Respects system preferences and reduced-motion
 - **Haptic Feedback**: Vibration on iOS and Android
 
@@ -31,26 +30,15 @@ Grant motion sensor permission on iOS, then shake your device. On desktop, use t
 - Framer Motion (spring physics)
 - Tailwind CSS 4
 - WebAudio API + DeviceMotion API
-- Supabase (optional)
 
 ## Deployment
 
 ### Vercel
 
 1. Create a Vercel account and link your GitHub repo
-2. Set root directory to `.` (not a subdirectory since this is now the root)
-3. Environment variables (optional):
-   - `NEXT_PUBLIC_SUPABASE_URL`: Supabase project URL
-   - `SUPABASE_SERVICE_ROLE_KEY`: Service role key (server-only)
+2. Set root directory to `.`
 
-### Local Supabase (Optional)
-
-```bash
-supabase init
-supabase start
-# Apply migrations in supabase/migrations/
-supabase migration run
-```
+No environment variables are needed — Dobby is entirely self-contained.
 
 ## Architecture
 
@@ -59,7 +47,7 @@ supabase migration run
 - `src/lib/useShake.ts` — Shake detection (230 lines)
 - `src/lib/sound.ts` — WebAudio synthesis (180 lines)
 - `src/lib/verdicts.ts` — Verdict bank (61 lines)
-- `src/app/api/` — Optional persistence routes
+- `src/lib/speech.ts` — Verdict narration (Web Speech API)
 
 ## License
 

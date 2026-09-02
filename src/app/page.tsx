@@ -17,8 +17,8 @@ export default function Home() {
   const [shake, setShake] = useState({ armed: verdict === null });
   const [permission, setPermission] = useState<"prompt" | "granted" | "denied" | "unsupported">("prompt");
   const [showPermissionBanner, setShowPermissionBanner] = useState(false);
-  const [muted, setMuted] = useState(audio.muted);
-  const [speechOn, setSpeechOn] = useState(speech.enabled);
+  const [muted, setMuted] = useState(false);
+  const [speechOn, setSpeechOn] = useState(true);
   const [speechSupported, setSpeechSupported] = useState(false);
   const [recentVerdicts, setRecentVerdicts] = useState<string[]>([]);
   const [protest, setProtest] = useState<string | null>(null);
@@ -74,7 +74,13 @@ export default function Home() {
     },
   });
 
+  const { requestAccess } = shakeApi;
+
+  // Preferences live in localStorage, which the server cannot see. Reading
+  // them during render desyncs hydration, so reconcile once we're on the client.
   useEffect(() => {
+    setMuted(audio.muted);
+    setSpeechOn(speech.enabled);
     setSpeechSupported(speech.supported);
   }, []);
 
@@ -89,10 +95,22 @@ export default function Home() {
 
   useEffect(() => {
     setPermission(shakeApi.permission);
-    if (shakeApi.permission === "prompt" && window.innerHeight < 800) {
-      setShowPermissionBanner(true);
-    }
   }, [shakeApi.permission]);
+
+  // Only iOS 13+ hides motion behind an explicit gesture. Everywhere else the
+  // listeners attach without ceremony, so take the grant ourselves rather than
+  // making people tap a button that exists purely for Apple's benefit.
+  useEffect(() => {
+    const ctor = window.DeviceMotionEvent as unknown as
+      | { requestPermission?: () => Promise<string> }
+      | undefined;
+
+    if (typeof ctor?.requestPermission === "function") {
+      setShowPermissionBanner(true);
+      return;
+    }
+    void requestAccess();
+  }, [requestAccess]);
 
   const requestPermission = useCallback(async () => {
     audio.unlock();
@@ -101,6 +119,8 @@ export default function Home() {
     setPermission(result);
     setShowPermissionBanner(false);
   }, [shakeApi]);
+
+  const dismissPermission = useCallback(() => setShowPermissionBanner(false), []);
 
   const dismiss = useCallback(() => {
     window.clearTimeout(speechTimeoutRef.current);
@@ -122,6 +142,13 @@ export default function Home() {
     setSpeechOn(next);
     speech.setEnabled(next);
   }, [speechOn]);
+
+  const toggleBase =
+    "grid h-12 w-12 place-items-center rounded-2xl text-xl transition active:scale-95 " +
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 " +
+    "focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-dark)]";
+  const toggleOn = "bg-white/15 text-white ring-1 ring-white/20 hover:bg-white/20";
+  const toggleOff = "bg-white/5 text-gray-500 ring-1 ring-white/10 hover:bg-white/10";
 
   return (
     <main className="min-h-screen flex flex-col items-center justify-center px-4 py-6 relative overflow-hidden">
@@ -215,60 +242,92 @@ export default function Home() {
         )}
       </AnimatePresence>
 
-      {/* Bottom controls */}
-      <div className="mt-8 flex gap-3 justify-center w-full z-20">
+      {/* Controls */}
+      <div className="mt-8 flex items-center justify-center gap-2.5 w-full z-20">
         <button
           onClick={shakeApi.poke}
           disabled={!shake.armed}
-          className="px-6 py-3 rounded-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold transition-colors shadow-lg"
+          className="h-12 px-7 rounded-2xl bg-blue-600 text-white font-bold tracking-tight shadow-lg shadow-blue-950/40 transition enabled:hover:bg-blue-500 enabled:active:scale-95 disabled:opacity-40 disabled:shadow-none disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-dark)]"
         >
           Poke Dobby
         </button>
         <button
           onClick={toggleMute}
-          className="px-4 py-3 rounded-full bg-gray-700 hover:bg-gray-600 text-white font-bold transition-colors shadow-lg"
-          aria-label={muted ? "Unmute" : "Mute"}
+          aria-pressed={!muted}
+          title={muted ? "Sound off" : "Sound on"}
+          aria-label={muted ? "Turn sound on" : "Turn sound off"}
+          className={`${toggleBase} ${muted ? toggleOff : toggleOn}`}
         >
           {muted ? "🔇" : "🔊"}
         </button>
         {speechSupported && (
           <button
             onClick={toggleSpeech}
-            className="px-4 py-3 rounded-full bg-gray-700 hover:bg-gray-600 text-white font-bold transition-colors shadow-lg"
-            aria-label={speechOn ? "Silence Dobby's voice" : "Let Dobby speak"}
             aria-pressed={speechOn}
+            title={speechOn ? "Dobby speaks his verdict" : "Dobby stays quiet"}
+            aria-label={speechOn ? "Silence Dobby's voice" : "Let Dobby speak"}
+            className={`${toggleBase} ${speechOn ? toggleOn : toggleOff}`}
           >
             {speechOn ? "🗣️" : "🤐"}
           </button>
         )}
       </div>
 
-      {/* Permission prompt banner */}
-      {showPermissionBanner && permission === "prompt" && (
-        <motion.div
-          className="fixed bottom-6 left-6 right-6 bg-amber-600/90 backdrop-blur-md rounded-lg p-4 text-white z-40 max-w-sm"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 20 }}
-        >
-          <p className="text-sm font-medium mb-3">
-            Dobby needs motion sensors to detect shakes. Grant permission to begin.
-          </p>
-          <button
-            onClick={requestPermission}
-            className="w-full py-2 rounded bg-white/20 hover:bg-white/30 text-white font-bold transition-colors"
-          >
-            Enable Shake
-          </button>
-        </motion.div>
+      {/* No sensors. Inline, rather than a fixed bar fighting the controls. */}
+      {(permission === "denied" || permission === "unsupported") && (
+        <p className="mt-4 flex items-center gap-2 rounded-full bg-white/5 px-4 py-2 text-xs text-[var(--text-secondary)] ring-1 ring-white/10">
+          <span aria-hidden="true">📱</span>
+          No motion sensors — poke him or drag the chamber instead.
+        </p>
       )}
 
-      {/* Degraded input banner (no sensors) */}
-      {permission === "denied" && !showPermissionBanner && (
-        <div className="fixed top-6 left-6 right-6 bg-gray-700/80 backdrop-blur-sm rounded-lg px-3 py-2 text-gray-300 text-xs z-30 max-w-sm">
-          📱 Use "Poke Dobby" or drag the chamber to shake (no motion sensors).
-        </div>
-      )}
+      {/* Motion permission — iOS only, and it clears the safe area instead of
+          landing on top of the controls the way the old fixed banner did. */}
+      <AnimatePresence>
+        {showPermissionBanner && permission === "prompt" && (
+          <motion.div
+            className="fixed inset-x-0 z-40 flex justify-center px-4"
+            style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 1.25rem)" }}
+            initial={{ opacity: 0, y: 28 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 28 }}
+            transition={{ type: "spring", stiffness: 280, damping: 26 }}
+          >
+            <div className="w-full max-w-sm rounded-3xl border border-white/10 bg-[var(--surface)]/95 p-5 shadow-2xl backdrop-blur-xl">
+              <div className="flex gap-3.5">
+                <div
+                  className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-amber-500/15 text-xl"
+                  aria-hidden="true"
+                >
+                  📳
+                </div>
+                <div className="min-w-0">
+                  <h2 className="text-sm font-bold text-[var(--text-primary)]">
+                    Let Dobby feel the shaking
+                  </h2>
+                  <p className="mt-1 text-xs leading-relaxed text-[var(--text-secondary)]">
+                    He needs your motion sensors. Nothing leaves your phone.
+                  </p>
+                </div>
+              </div>
+              <div className="mt-4 flex gap-2">
+                <button
+                  onClick={dismissPermission}
+                  className="h-11 flex-1 rounded-xl text-sm font-semibold text-[var(--text-secondary)] transition hover:bg-white/5 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                >
+                  Not now
+                </button>
+                <button
+                  onClick={requestPermission}
+                  className="h-11 flex-[1.6] rounded-xl bg-amber-500 text-sm font-bold text-gray-950 shadow-lg shadow-amber-950/30 transition hover:bg-amber-400 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)]"
+                >
+                  Enable shake
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Idle mutter */}
       {mood === "idle" && shake.armed && !verdict && (
