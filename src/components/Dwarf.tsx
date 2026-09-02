@@ -15,7 +15,7 @@ export type Mood = "idle" | "shaking" | "delivering";
 interface DwarfProps {
   /** 0→1 shake energy, updated outside React. */
   intensity: MotionValue<number>;
-  /** 0→8. Accumulated abuse; drives plasters, bruises and despair. */
+  /** 0→12. Accumulated abuse; plasters and bruises give way to lost limbs. */
   damage: number;
   mood: Mood;
   /** Bumped on every glass impact to fire the squash + flash. */
@@ -230,23 +230,46 @@ export function Dwarf({ intensity, damage, mood, impactSeed, reducedMotion }: Dw
         >
           {[78, 122].map((x, i) => (
             <g key={x}>
-              <rect
-                x={x - 9}
-                y={182}
-                width={18}
-                height={26}
-                rx={8}
-                fill="#2b4f52"
-                stroke="#1c130f"
-                strokeWidth={3.2}
-              />
-              <path
-                d={`M ${x - 14} 206 h 28 a 9 9 0 0 1 9 9 v 5 a 4 4 0 0 1 -4 4 h -${i === 0 ? 40 : 38} a 4 4 0 0 1 -4 -4 v -5 a 9 9 0 0 1 9 -9 z`}
-                fill="url(#d-boot)"
-                stroke="#1c130f"
-                strokeWidth={3.2}
-                strokeLinejoin="round"
-              />
+              {i === 0 && damage >= 11 ? (
+                <g>
+                  {/* Left leg's a long wooden peg — pointed and pale so it juts
+                      clear of the beard and boot, and you can see the damage done. */}
+                  <rect x={x - 12} y={177} width={24} height={9} rx={2} fill="#3b2a20" stroke="#1c130f" strokeWidth={2.6} />
+                  <path
+                    d={`M ${x - 9} 185 h 18 l -7 53 h -4 z`}
+                    fill="#a97846"
+                    stroke="#1c130f"
+                    strokeWidth={3}
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d={`M ${x - 6} 196 h 13 M ${x - 5} 208 h 11 M ${x - 4} 220 h 8`}
+                    stroke="#6b4526"
+                    strokeWidth={1.5}
+                    opacity={0.55}
+                  />
+                </g>
+              ) : (
+                <>
+                  <rect
+                    x={x - 9}
+                    y={182}
+                    width={18}
+                    height={26}
+                    rx={8}
+                    fill="#2b4f52"
+                    stroke="#1c130f"
+                    strokeWidth={3.2}
+                  />
+                  <path
+                    d={`M ${x - 14} 206 h 28 a 9 9 0 0 1 9 9 v 5 a 4 4 0 0 1 -4 4 h -${i === 0 ? 40 : 38} a 4 4 0 0 1 -4 -4 v -5 a 9 9 0 0 1 9 -9 z`}
+                    fill="url(#d-boot)"
+                    stroke="#1c130f"
+                    strokeWidth={3.2}
+                    strokeLinejoin="round"
+                  />
+                </>
+              )}
             </g>
           ))}
         </motion.g>
@@ -266,21 +289,33 @@ export function Dwarf({ intensity, damage, mood, impactSeed, reducedMotion }: Dw
         <motion.g
           style={{ rotate: armRot, transformBox: "view-box", transformOrigin: "64px 138px" }}
         >
-          <path
-            d="M 64 134 C 48 142, 40 156, 40 170"
-            fill="none"
-            stroke="#1c130f"
-            strokeWidth={17}
-            strokeLinecap="round"
-          />
-          <path
-            d="M 64 134 C 48 142, 40 156, 40 170"
-            fill="none"
-            stroke="url(#d-tunic)"
-            strokeWidth={11.5}
-            strokeLinecap="round"
-          />
-          <circle cx={39} cy={175} r={11} fill="url(#d-skin)" stroke="#1c130f" strokeWidth={3.2} />
+          {damage >= 12 ? (
+            <g>
+              {/* Left arm ends in a bandaged stump. Don't ask where the rest went. */}
+              <path d="M 64 134 C 57 140, 53 148, 53 157" fill="none" stroke="#1c130f" strokeWidth={17} strokeLinecap="round" />
+              <path d="M 64 134 C 57 140, 53 148, 53 157" fill="none" stroke="url(#d-tunic)" strokeWidth={11.5} strokeLinecap="round" />
+              <circle cx={53} cy={159} r={9.5} fill="#f7efdd" stroke="#1c130f" strokeWidth={3} />
+              <path d="M 45 155 l 17 3 M 45 162 l 16 -3" stroke="#d9c9a6" strokeWidth={2} strokeLinecap="round" />
+            </g>
+          ) : (
+            <>
+              <path
+                d="M 64 134 C 48 142, 40 156, 40 170"
+                fill="none"
+                stroke="#1c130f"
+                strokeWidth={17}
+                strokeLinecap="round"
+              />
+              <path
+                d="M 64 134 C 48 142, 40 156, 40 170"
+                fill="none"
+                stroke="url(#d-tunic)"
+                strokeWidth={11.5}
+                strokeLinecap="round"
+              />
+              <circle cx={39} cy={175} r={11} fill="url(#d-skin)" stroke="#1c130f" strokeWidth={3.2} />
+            </>
+          )}
         </motion.g>
         <motion.g
           style={{ rotate: armRotMirror, transformBox: "view-box", transformOrigin: "136px 138px" }}
@@ -299,7 +334,16 @@ export function Dwarf({ intensity, damage, mood, impactSeed, reducedMotion }: Dw
             strokeWidth={11.5}
             strokeLinecap="round"
           />
-          <circle cx={161} cy={175} r={11} fill="url(#d-skin)" stroke="#1c130f" strokeWidth={3.2} />
+          {damage >= 10 ? (
+            <g>
+              {/* Hand's gone; it's a hook now. He insists it's an upgrade. */}
+              <circle cx={161} cy={170} r={6.5} fill="#6b4a30" stroke="#1c130f" strokeWidth={3} />
+              <path d="M 161 173 v 9 a 7 7 0 1 0 9 -3" fill="none" stroke="#c2ccd6" strokeWidth={5} strokeLinecap="round" />
+              <path d="M 161 173 v 9 a 7 7 0 1 0 9 -3" fill="none" stroke="#7c8896" strokeWidth={1.6} strokeLinecap="round" opacity={0.5} />
+            </g>
+          ) : (
+            <circle cx={161} cy={175} r={11} fill="url(#d-skin)" stroke="#1c130f" strokeWidth={3.2} />
+          )}
         </motion.g>
 
         {/* ── Head ──────────────────────────────────────────────────────── */}
@@ -417,8 +461,8 @@ export function Dwarf({ intensity, damage, mood, impactSeed, reducedMotion }: Dw
           </>
         )}
 
-        {/* Hand wrapped. He has stopped bracing for it. */}
-        {damage >= 7 && (
+        {/* Hand wrapped — for as long as there's a hand to wrap. */}
+        {damage >= 7 && damage < 10 && (
           <g>
             <circle cx={161} cy={175} r={12.5} fill="#f7efdd" stroke="#1c130f" strokeWidth={3} />
             <path d="M 151 170 L 171 178 M 151 178 L 171 170" stroke="#d9c9a6" strokeWidth={2.2} strokeLinecap="round" />
@@ -436,6 +480,15 @@ export function Dwarf({ intensity, damage, mood, impactSeed, reducedMotion }: Dw
               strokeLinecap="round"
               opacity={0.75}
             />
+          </g>
+        )}
+
+        {/* Lost the eye. The patch is the most dignified he's looked in weeks. */}
+        {damage >= 9 && (
+          <g>
+            <path d="M 70 74 L 150 60" stroke="#1c130f" strokeWidth={4} strokeLinecap="round" opacity={0.85} />
+            <ellipse cx={86} cy={82} rx={12.5} ry={11} fill="#17110d" stroke="#1c130f" strokeWidth={2.6} />
+            <ellipse cx={82} cy={78} rx={3} ry={2} fill="#4a382b" opacity={0.6} />
           </g>
         )}
 

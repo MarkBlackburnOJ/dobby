@@ -10,8 +10,8 @@ import { speech } from "@/lib/speech";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { UpdatePrompt } from "@/components/UpdatePrompt";
 
-/** Eight tiers of visible regret, from one plaster to a stitched-up hat. */
-const MAX_DAMAGE = 8;
+/** Twelve tiers of visible regret, from one plaster to lost eyes, hands and legs. */
+const MAX_DAMAGE = 12;
 
 export default function Home() {
   const reducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
