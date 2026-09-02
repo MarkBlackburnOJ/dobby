@@ -1,0 +1,69 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #__next {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+:root {
+  --bg-dark: #0f1419;
+  --surface: #1f2937;
+  --accent-yes: #5fd6a0;
+  --accent-no: #ff6b6b;
+  --accent-maybe: #f5c451;
+  --accent-chaotic: #c08bff;
+  --text-primary: #f3f4f6;
+  --text-secondary: #d1d5db;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg-dark: #fafafa;
+    --surface: #ffffff;
+    --text-primary: #1f2937;
+    --text-secondary: #6b7280;
+  }
+}
+
+body {
+  background: var(--bg-dark);
+  color: var(--text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  line-height: 1.5;
+  font-size: 16px;
+}
+
+/* Force viewport to ignore the notch / dynamic island on iPhones */
+@supports (padding: max(0px)) {
+  body {
+    padding-left: max(12px, env(safe-area-inset-left));
+    padding-right: max(12px, env(safe-area-inset-right));
+    padding-top: max(12px, env(safe-area-inset-top));
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+  }
+}
+
+.dwarf-svg {
+  max-width: 100%;
+  height: auto;
+  filter: drop-shadow(0 10px 30px rgba(0, 0, 0, 0.4));
+}
+
+@media (prefers-color-scheme: light) {
+  .dwarf-svg {
+    filter: drop-shadow(0 10px 30px rgba(0, 0, 0, 0.12));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
