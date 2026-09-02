@@ -103,16 +103,10 @@ export function InstallPrompt({ canPrompt }: { canPrompt: boolean }) {
               </div>
             </div>
             <div className="mt-4 flex gap-2">
-              <button
-                onClick={decline}
-                className="h-11 flex-1 rounded-xl text-sm font-semibold text-[var(--text-secondary)] transition hover:bg-white/5 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
-              >
+              <button onClick={decline} className="btn btn-ghost btn-sm flex-1">
                 No thanks
               </button>
-              <button
-                onClick={install}
-                className="h-11 flex-[1.6] rounded-xl bg-blue-600 text-sm font-bold text-white shadow-lg shadow-blue-950/40 transition hover:bg-blue-500 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)]"
-              >
+              <button onClick={install} className="btn btn-primary btn-sm flex-[1.6]">
                 Install
               </button>
             </div>

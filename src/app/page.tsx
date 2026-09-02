@@ -144,21 +144,14 @@ export default function Home() {
     speech.setEnabled(next);
   }, [speechOn]);
 
-  const toggleBase =
-    "grid h-12 w-12 place-items-center rounded-2xl text-xl transition active:scale-95 " +
-    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 " +
-    "focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-dark)]";
-  const toggleOn = "bg-white/15 text-white ring-1 ring-white/20 hover:bg-white/20";
-  const toggleOff = "bg-white/5 text-gray-500 ring-1 ring-white/10 hover:bg-white/10";
-
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center px-4 py-6 relative overflow-hidden">
+    <main className="h-full flex flex-col items-center justify-center px-4 py-4 relative overflow-hidden">
       {/* Radial gradient backdrop */}
       <div className="absolute inset-0 pointer-events-none bg-gradient-to-br from-transparent via-transparent to-black/20" />
 
       {/* Main chamber */}
       <motion.div
-        className="flex-1 flex items-center justify-center w-full max-w-sm relative z-10"
+        className="w-full max-w-[min(24rem,calc(100dvh-19rem))] relative z-10"
         animate={{ scale: mood === "shaking" ? 0.98 : 1 }}
         transition={{ duration: 0.12 }}
       >
@@ -212,7 +205,7 @@ export default function Home() {
       <AnimatePresence mode="wait">
         {verdict && (
           <motion.div
-            className="mt-8 w-full max-w-sm"
+            className="mt-6 w-full max-w-sm"
             initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
@@ -234,7 +227,8 @@ export default function Home() {
               <p className="text-lg font-semibold leading-tight mb-4 text-gray-100">{verdict.text}</p>
               <button
                 onClick={dismiss}
-                className="w-full py-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors text-sm font-medium text-gray-200"
+                className="btn btn-tone btn-sm w-full"
+                style={{ ["--tone" as string]: TONE_META[verdict.tone as Tone].accent }}
               >
                 Ask Again
               </button>
@@ -244,12 +238,8 @@ export default function Home() {
       </AnimatePresence>
 
       {/* Controls */}
-      <div className="mt-8 flex items-center justify-center gap-2.5 w-full z-20">
-        <button
-          onClick={shakeApi.poke}
-          disabled={!shake.armed}
-          className="h-12 px-7 rounded-2xl bg-blue-600 text-white font-bold tracking-tight shadow-lg shadow-blue-950/40 transition enabled:hover:bg-blue-500 enabled:active:scale-95 disabled:opacity-40 disabled:shadow-none disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-dark)]"
-        >
+      <div className="mt-6 flex items-center justify-center gap-2.5 w-full z-20">
+        <button onClick={shakeApi.poke} disabled={!shake.armed} className="btn btn-primary">
           Poke Dobby
         </button>
         <button
@@ -257,7 +247,7 @@ export default function Home() {
           aria-pressed={!muted}
           title={muted ? "Sound off" : "Sound on"}
           aria-label={muted ? "Turn sound on" : "Turn sound off"}
-          className={`${toggleBase} ${muted ? toggleOff : toggleOn}`}
+          className={`btn btn-icon ${muted ? "btn-icon-off" : "btn-icon-on"}`}
         >
           {muted ? "🔇" : "🔊"}
         </button>
@@ -267,7 +257,7 @@ export default function Home() {
             aria-pressed={speechOn}
             title={speechOn ? "Dobby speaks his verdict" : "Dobby stays quiet"}
             aria-label={speechOn ? "Silence Dobby's voice" : "Let Dobby speak"}
-            className={`${toggleBase} ${speechOn ? toggleOn : toggleOff}`}
+            className={`btn btn-icon ${speechOn ? "btn-icon-on" : "btn-icon-off"}`}
           >
             {speechOn ? "🗣️" : "🤐"}
           </button>
@@ -316,16 +306,10 @@ export default function Home() {
                 </div>
               </div>
               <div className="mt-4 flex gap-2">
-                <button
-                  onClick={dismissPermission}
-                  className="h-11 flex-1 rounded-xl text-sm font-semibold text-[var(--text-secondary)] transition hover:bg-white/5 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
-                >
+                <button onClick={dismissPermission} className="btn btn-ghost btn-sm flex-1">
                   Not now
                 </button>
-                <button
-                  onClick={requestPermission}
-                  className="h-11 flex-[1.6] rounded-xl bg-amber-500 text-sm font-bold text-gray-950 shadow-lg shadow-amber-950/30 transition hover:bg-amber-400 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)]"
-                >
+                <button onClick={requestPermission} className="btn btn-primary btn-sm flex-[1.6]">
                   Enable shake
                 </button>
               </div>
