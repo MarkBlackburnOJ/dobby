@@ -10,8 +10,8 @@ import { speech } from "@/lib/speech";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { UpdatePrompt } from "@/components/UpdatePrompt";
 
-/** Twelve tiers of visible regret, from one plaster to lost eyes, hands and legs. */
-const MAX_DAMAGE = 12;
+/** Sixteen tiers of visible regret, from one plaster to a bleeding, dismembered wreck. */
+const MAX_DAMAGE = 16;
 
 export default function Home() {
   const reducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
@@ -178,13 +178,38 @@ export default function Home() {
           <AnimatePresence>
             {impactSeed > 0 && (
               <motion.div
-                className="absolute inset-0 rounded-3xl bg-white/20 pointer-events-none"
+                className={`absolute inset-0 rounded-3xl pointer-events-none ${damage >= 13 ? "bg-red-700/30" : "bg-white/20"}`}
                 initial={{ opacity: 0.6 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.15 }}
               />
             )}
           </AnimatePresence>
+
+          {/* Blood on the inside of the glass — it accrues as he does. */}
+          {damage >= 13 && (
+            <svg
+              className="absolute inset-0 h-full w-full pointer-events-none"
+              viewBox="0 0 100 100"
+              preserveAspectRatio="none"
+              style={{ opacity: Math.min((damage - 12) / 4, 1) * 0.8 }}
+              aria-hidden="true"
+            >
+              <g fill="#7d1414">
+                <path d="M8 14 q2 8 -1 16 q3 -6 5 -1 q1 -7 -4 -15 z" />
+                <path d="M92 22 q3 10 0 20 q4 -7 5 0 q2 -9 -5 -20 z" />
+                <circle cx="14" cy="40" r="1.6" />
+                <circle cx="88" cy="12" r="1.9" />
+                <circle cx="83" cy="47" r="1.2" />
+                <circle cx="20" cy="9" r="1.3" />
+              </g>
+              <g fill="#9e1a1a">
+                <path d="M50 5 q2 12 -1 22 q3 -7 5 -1 q2 -10 -4 -21 z" />
+                <circle cx="70" cy="30" r="1.4" />
+                <circle cx="30" cy="54" r="1.5" />
+              </g>
+            </svg>
+          )}
 
           {/* Protest speech bubble */}
           <AnimatePresence>

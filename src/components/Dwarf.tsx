@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   motion,
   useAnimationFrame,
@@ -110,10 +110,21 @@ export function Dwarf({ intensity, damage, mood, impactSeed, reducedMotion }: Dw
       const against = Math.abs(rawX) >= 1 || Math.abs(rawY) >= 1;
       if (against && !wallContact.current) squash.set(1);
       wallContact.current = against;
-    } else if (bodyX.get() !== 0) {
-      bodyX.set(0);
-      bodyY.set(0);
-      bodyRot.set(0);
+    } else {
+      // Barely holding together: a fine tremor once he's really hurt.
+      const tremor =
+        !reducedMotion && mood !== "shaking" && damage >= 13
+          ? Math.min((damage - 12) / 4, 1)
+          : 0;
+      if (tremor > 0) {
+        bodyX.set(Math.sin(s * 46) * 1.1 * tremor);
+        bodyY.set(Math.cos(s * 39) * 0.7 * tremor);
+        bodyRot.set(Math.sin(s * 53) * 0.9 * tremor);
+      } else if (bodyX.get() !== 0) {
+        bodyX.set(0);
+        bodyY.set(0);
+        bodyRot.set(0);
+      }
     }
 
     // Idle breathing, suppressed while he's being flung about.
@@ -212,6 +223,11 @@ export function Dwarf({ intensity, damage, mood, impactSeed, reducedMotion }: Dw
           <stop offset="70%" stopColor="#6b4fa8" stopOpacity="0.45" />
           <stop offset="100%" stopColor="#6b4fa8" stopOpacity="0" />
         </radialGradient>
+        <radialGradient id="d-blood" cx="0.5" cy="0.4" r="0.6">
+          <stop offset="0%" stopColor="#e0352b" />
+          <stop offset="60%" stopColor="#b21f1f" />
+          <stop offset="100%" stopColor="#7d1414" />
+        </radialGradient>
       </defs>
 
       {/* Everything hangs off this one group so the whole dwarf moves as a unit. */}
@@ -296,6 +312,7 @@ export function Dwarf({ intensity, damage, mood, impactSeed, reducedMotion }: Dw
               <path d="M 64 134 C 57 140, 53 148, 53 157" fill="none" stroke="url(#d-tunic)" strokeWidth={11.5} strokeLinecap="round" />
               <circle cx={53} cy={159} r={9.5} fill="#f7efdd" stroke="#1c130f" strokeWidth={3} />
               <path d="M 45 155 l 17 3 M 45 162 l 16 -3" stroke="#d9c9a6" strokeWidth={2} strokeLinecap="round" />
+              {damage >= 14 && <ellipse cx={53} cy={160} rx={6} ry={5} fill="#9e1a1a" opacity={0.82} />}
             </g>
           ) : (
             <>
@@ -338,6 +355,7 @@ export function Dwarf({ intensity, damage, mood, impactSeed, reducedMotion }: Dw
             <g>
               {/* Hand's gone; it's a hook now. He insists it's an upgrade. */}
               <circle cx={161} cy={170} r={6.5} fill="#6b4a30" stroke="#1c130f" strokeWidth={3} />
+              {damage >= 14 && <ellipse cx={161} cy={170} rx={5} ry={3.6} fill="#a81c1c" opacity={0.85} />}
               <path d="M 161 173 v 9 a 7 7 0 1 0 9 -3" fill="none" stroke="#c2ccd6" strokeWidth={5} strokeLinecap="round" />
               <path d="M 161 173 v 9 a 7 7 0 1 0 9 -3" fill="none" stroke="#7c8896" strokeWidth={1.6} strokeLinecap="round" opacity={0.5} />
             </g>
@@ -492,6 +510,55 @@ export function Dwarf({ intensity, damage, mood, impactSeed, reducedMotion }: Dw
           </g>
         )}
 
+        {/* ── Blood. It starts, and then it does not stop. ───────────────── */}
+        {/* First blood: split brow and a nosebleed that drips down the beard. */}
+        {damage >= 13 && (
+          <InjuryPop reduced={reducedMotion}>
+            <path d="M 106 65 l 13 6" stroke="#7d1414" strokeWidth={4.5} strokeLinecap="round" />
+            <path d="M 107 66 l 11 5" stroke="#e0352b" strokeWidth={1.8} strokeLinecap="round" />
+            <path d="M 95 105 q 5 7 10 2" fill="none" stroke="#b21f1f" strokeWidth={3.4} strokeLinecap="round" />
+            <BloodDrip x={97} y={108} delay={0.1} reduced={reducedMotion} />
+            <BloodDrip x={103} y={109} delay={1.0} reduced={reducedMotion} />
+          </InjuryPop>
+        )}
+
+        {/* The bandages soak through, and his lip splits. */}
+        {damage >= 14 && (
+          <InjuryPop reduced={reducedMotion}>
+            <ellipse cx={64} cy={91} rx={5} ry={3.2} fill="#a81c1c" opacity={0.85} />
+            <ellipse cx={122} cy={67} rx={5.5} ry={3.6} fill="#a81c1c" opacity={0.8} transform="rotate(-16 122 67)" />
+            <path d="M 108 118 q 6 4 3 9" fill="none" stroke="#8f1414" strokeWidth={3.4} strokeLinecap="round" />
+            <BloodDrip x={110} y={124} delay={0.5} reduced={reducedMotion} />
+          </InjuryPop>
+        )}
+
+        {/* Cheeks gashed, beard staining, a pool forming underneath. */}
+        {damage >= 15 && (
+          <InjuryPop reduced={reducedMotion}>
+            <path d="M 126 96 l 9 11" stroke="#8f1414" strokeWidth={3.6} strokeLinecap="round" />
+            <path d="M 127 97 l 7 8" stroke="#e0352b" strokeWidth={1.5} strokeLinecap="round" />
+            <path d="M 72 101 l -8 9" stroke="#8f1414" strokeWidth={3.4} strokeLinecap="round" />
+            <path d="M 96 126 q -4 24 0 46" fill="none" stroke="#9e1a1a" strokeWidth={4} strokeLinecap="round" opacity={0.45} />
+            <ellipse cx={104} cy={233} rx={30} ry={6} fill="#7d1414" opacity={0.8} />
+            <ellipse cx={122} cy={231} rx={10} ry={3} fill="#9e1a1a" opacity={0.7} />
+            <BloodDrip x={100} y={124} delay={0.3} reduced={reducedMotion} />
+            <BloodDrip x={106} y={126} delay={1.2} reduced={reducedMotion} />
+          </InjuryPop>
+        )}
+
+        {/* Maximum carnage: gauzed head, bleeding everywhere, a spreading pool. */}
+        {damage >= 16 && (
+          <InjuryPop reduced={reducedMotion}>
+            <path d="M 62 70 Q 100 60 138 70 L 136 79 Q 100 69 64 79 Z" fill="#efe6d2" stroke="#1c130f" strokeWidth={2.4} opacity={0.96} />
+            <ellipse cx={116} cy={74} rx={6.5} ry={4.2} fill="#b21f1f" opacity={0.9} />
+            <ellipse cx={100} cy={235} rx={44} ry={8.5} fill="#6f1111" opacity={0.85} />
+            <ellipse cx={80} cy={233} rx={12} ry={3.5} fill="#8f1414" opacity={0.7} />
+            <BloodDrip x={68} y={94} delay={0.6} reduced={reducedMotion} />
+            <BloodDrip x={138} y={96} delay={1.4} reduced={reducedMotion} />
+            <BloodDrip x={100} y={110} delay={0.0} reduced={reducedMotion} />
+          </InjuryPop>
+        )}
+
         {/* ── Hat, on top of everything, sliding down as he takes a beating ─ */}
         <motion.g
           style={{
@@ -521,6 +588,25 @@ export function Dwarf({ intensity, damage, mood, impactSeed, reducedMotion }: Dw
         </motion.g>
 
         {showStars && <DizzyStars />}
+
+        {/* Blood flies on impact once he's actually bleeding. Keyed so each
+            glass hit replays the burst. */}
+        {!reducedMotion && damage >= 13 && impactSeed > 0 && (
+          <motion.g key={impactSeed}>
+            {BLOOD_SPRAY.map((d, k) => (
+              <motion.circle
+                key={k}
+                cx={100}
+                cy={104}
+                r={d.r}
+                fill="#c11f1f"
+                initial={{ x: 0, y: 0, opacity: 0.9 }}
+                animate={{ x: d.x, y: d.y, opacity: 0 }}
+                transition={{ duration: 0.45, ease: "easeOut" }}
+              />
+            ))}
+          </motion.g>
+        )}
       </motion.g>
         </svg>
       </motion.div>
@@ -587,6 +673,48 @@ function Mouth({ mood, damage }: { mood: Mood; damage: number }) {
     );
   }
   return <path d="M 88 122 q 12 -7 24 0" fill="none" stroke="#1c130f" strokeWidth={3.4} strokeLinecap="round" />;
+}
+
+const BLOOD_SPRAY = [
+  { x: -34, y: -20, r: 3.0 },
+  { x: 30, y: -26, r: 2.4 },
+  { x: 40, y: 6, r: 2.8 },
+  { x: -40, y: 10, r: 2.2 },
+  { x: 22, y: 30, r: 3.2 },
+  { x: -18, y: 34, r: 2.0 },
+  { x: 8, y: -38, r: 2.2 },
+  { x: -8, y: 40, r: 2.6 },
+];
+
+/** A single injury, sliding + fading in the moment it's earned. */
+function InjuryPop({ children, reduced }: { children: ReactNode; reduced: boolean }) {
+  if (reduced) return <g>{children}</g>;
+  return (
+    <motion.g
+      initial={{ opacity: 0, y: -5 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ type: "spring", stiffness: 420, damping: 22 }}
+    >
+      {children}
+    </motion.g>
+  );
+}
+
+/** A bead of blood, welling and falling on a loop. */
+function BloodDrip({ x, y, delay = 0, reduced }: { x: number; y: number; delay?: number; reduced: boolean }) {
+  if (reduced) return <ellipse cx={x} cy={y + 7} rx={2.3} ry={3.4} fill="#a81c1c" />;
+  return (
+    <motion.ellipse
+      cx={x}
+      cy={y}
+      rx={2.4}
+      ry={3.6}
+      fill="#b21f1f"
+      initial={{ y: 0, opacity: 0 }}
+      animate={{ y: [0, 22], opacity: [0, 1, 1, 0] }}
+      transition={{ duration: 1.9, repeat: Infinity, delay, ease: "easeIn", times: [0, 0.12, 0.72, 1] }}
+    />
+  );
 }
 
 function DizzyStars() {

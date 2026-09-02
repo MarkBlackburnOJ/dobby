@@ -251,6 +251,13 @@ export const PROTESTS: string[] = [
   "OW OW OW",
   "MY SPLEEN—",
   "IS THIS LEGAL",
+  "THAT'S BLOOD—",
+  "I'M LEAKING",
+  "MI VISION—",
+  "SEE THE LIGHT",
+  "TELL ME WIFE",
+  "SO MUCH RED",
+  "NOT THE FACE",
 ];
 
 /** Muttered while idle, waiting for a question. */
