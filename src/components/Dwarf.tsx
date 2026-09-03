@@ -13,6 +13,9 @@ import type { DwarfSkin } from "@/lib/verdicts";
 
 export type Mood = "idle" | "shaking" | "delivering";
 
+/** The damage cap — past this there's nothing left of him but bones. */
+const MAX_DAMAGE = 25;
+
 interface DwarfProps {
   /** 0→1 shake energy, updated outside React. */
   intensity: MotionValue<number>;
@@ -181,6 +184,10 @@ export function Dwarf({ intensity, damage, mood, impactSeed, impactForce, skin, 
 
   const showStars = damage >= 2 && mood !== "idle";
 
+  // The end of the line. At the cap the flesh is spent and only bones are left —
+  // he swaps to a skeleton, keeps the hat, and gets a halo he didn't earn.
+  const isSkeleton = damage >= MAX_DAMAGE;
+
   return (
     <div ref={stageRef} className="dwarf-stage">
       <motion.div ref={bodyRef} className="dwarf-body" style={{ x: bodyX, y: bodyY }}>
@@ -248,6 +255,10 @@ export function Dwarf({ intensity, damage, mood, impactSeed, impactForce, skin, 
           transformOrigin: "100px 150px",
         }}
       >
+        {isSkeleton && <Skeleton reduced={reducedMotion} />}
+
+        {!isSkeleton && (
+        <>
         {/* ── Legs + boots ──────────────────────────────────────────────── */}
         <motion.g
           style={{ rotate: legRot, transformBox: "view-box", transformOrigin: "100px 186px" }}
@@ -609,6 +620,8 @@ export function Dwarf({ intensity, damage, mood, impactSeed, impactForce, skin, 
             ))}
           </InjuryPop>
         )}
+        </>
+        )}
 
         {/* ── Hat, on top of everything, sliding down as he takes a beating ─ */}
         <motion.g
@@ -629,7 +642,7 @@ export function Dwarf({ intensity, damage, mood, impactSeed, impactForce, skin, 
 
         {/* Blood flies on impact once he's actually bleeding. Keyed so each
             glass hit replays the burst. */}
-        {!reducedMotion && damage >= 13 && impactSeed > 0 && (
+        {!reducedMotion && damage >= 13 && !isSkeleton && impactSeed > 0 && (
           <motion.g key={impactSeed}>
             {BLOOD_SPRAY.slice(0, Math.max(3, Math.round(impactForce * BLOOD_SPRAY.length))).map((d, k) => (
               <motion.circle
@@ -816,9 +829,11 @@ function Hat({ skin, uid }: { skin: DwarfSkin; uid: string }) {
 }
 
 function Afterlife({ damage, reduced }: { damage: number; reduced: boolean }) {
-  if (damage < 23) return null;
-  const halo = damage >= 25 ? 1 : damage >= 24 ? 0.75 : 0.45;
-  const ghost = damage >= 25 ? 0.6 : damage >= 24 ? 0.48 : 0.36;
+  // The soul-leaving transition. At the cap (25) the body is bones, so the
+  // skeleton takes over and this bows out.
+  if (damage < 23 || damage >= MAX_DAMAGE) return null;
+  const halo = damage >= 24 ? 0.75 : 0.45;
+  const ghost = damage >= 24 ? 0.48 : 0.36;
   return (
     <g>
       {/* Halo, brightening as he lets go. */}
@@ -862,6 +877,149 @@ function Afterlife({ damage, reduced }: { damage: number; reduced: boolean }) {
             <ellipse cx={100 + 30 - i * 4} cy={54 - i * 7} rx={2.1} ry={1.4} fill="#1c130f" />
           </motion.g>
         ))}
+    </g>
+  );
+}
+
+const BONE_FILL = "#ece5d3";
+const BONE_SHADE = "#d3c6a8";
+const BONE_LINE = "#1c130f";
+const BONE_SOCKET = "#140f0b";
+
+/** A long bone: pale core, dark edge — the same two-stroke trick the arms use. */
+function LimbBone({ d, w = 7 }: { d: string; w?: number }) {
+  return (
+    <>
+      <path d={d} fill="none" stroke={BONE_LINE} strokeWidth={w + 3} strokeLinecap="round" />
+      <path d={d} fill="none" stroke={BONE_FILL} strokeWidth={w} strokeLinecap="round" />
+    </>
+  );
+}
+
+/** A knuckle of bone where two others meet. */
+function BoneJoint({ cx, cy, r = 4.5 }: { cx: number; cy: number; r?: number }) {
+  return <circle cx={cx} cy={cy} r={r} fill={BONE_FILL} stroke={BONE_LINE} strokeWidth={3} />;
+}
+
+/**
+ * The final form. At the damage cap the flesh is spent and he's a full skeleton —
+ * skull, ribcage, the lot — still in his hat, still owed a halo. Drawn in the
+ * same 200×240 frame as the living dwarf, so it shakes and squashes as one piece.
+ */
+function Skeleton({ reduced }: { reduced: boolean }) {
+  return (
+    <g>
+      {/* A halo he did nothing to earn, hovering clear of the hat. */}
+      <motion.ellipse
+        cx={100}
+        cy={6}
+        rx={26}
+        ry={6}
+        fill="none"
+        stroke="#ffe680"
+        strokeWidth={4}
+        style={{ opacity: 0.9 }}
+        animate={reduced ? undefined : { opacity: [0.55, 0.95, 0.55] }}
+        transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
+      />
+
+      {/* ── Legs: femur, knee, shin, foot ─────────────────────────────── */}
+      {[
+        { hip: 90, dir: -1 },
+        { hip: 110, dir: 1 },
+      ].map(({ hip, dir }) => (
+        <g key={hip}>
+          <LimbBone d={`M ${hip} 188 C ${hip + dir * 2} 200, ${hip + dir * 6} 206, ${hip + dir * 6} 212`} />
+          <BoneJoint cx={hip + dir * 6} cy={214} />
+          <LimbBone d={`M ${hip + dir * 6} 216 L ${hip + dir * 4} 232`} w={6} />
+          <LimbBone d={`M ${hip + dir * 4} 232 h ${dir * 11}`} w={5} />
+        </g>
+      ))}
+
+      {/* ── Pelvis ────────────────────────────────────────────────────── */}
+      <path
+        d="M 80 176 q 20 10 40 0 q -3 16 -13 16 q -6 -7 -7 -12 q -1 5 -7 12 q -10 0 -13 -16 Z"
+        fill={BONE_FILL}
+        stroke={BONE_LINE}
+        strokeWidth={3}
+        strokeLinejoin="round"
+      />
+
+      {/* ── Spine ─────────────────────────────────────────────────────── */}
+      {[122, 130, 138, 146, 154, 162, 170].map((y) => (
+        <rect key={y} x={95.5} y={y} width={9} height={5} rx={2} fill={BONE_SHADE} stroke={BONE_LINE} strokeWidth={2.4} />
+      ))}
+
+      {/* ── Ribcage ───────────────────────────────────────────────────── */}
+      <LimbBone d="M 100 130 L 100 170" w={4} />
+      {[0, 1, 2, 3].map((i) => {
+        const y = 134 + i * 10;
+        const w = 25 - i * 3;
+        return (
+          <g key={i}>
+            <LimbBone d={`M 100 ${y} q -${w} 2 -${w - 4} 17`} w={3.4} />
+            <LimbBone d={`M 100 ${y} q ${w} 2 ${w - 4} 17`} w={3.4} />
+          </g>
+        );
+      })}
+
+      {/* ── Arms: humerus, elbow, forearm, a suggestion of a hand ─────── */}
+      {[
+        { sx: 74, dir: -1, ex: 46 },
+        { sx: 126, dir: 1, ex: 154 },
+      ].map(({ sx, dir, ex }) => (
+        <g key={sx}>
+          <LimbBone d={`M ${sx} 132 C ${sx + dir * 4} 144, ${ex} 148, ${ex} 160`} />
+          <BoneJoint cx={ex} cy={162} />
+          <LimbBone d={`M ${ex} 164 L ${ex + dir * 3} 180`} w={6} />
+          <g stroke={BONE_LINE} strokeWidth={2.4} strokeLinecap="round">
+            <path d={`M ${ex + dir * 3} 180 l ${dir * 5} 5`} />
+            <path d={`M ${ex + dir * 3} 180 l ${dir * 2} 7`} />
+            <path d={`M ${ex + dir * 3} 180 l ${-dir * 2} 5`} />
+          </g>
+        </g>
+      ))}
+
+      {/* ── Skull ─────────────────────────────────────────────────────── */}
+      <path
+        d="M 68 84 C 68 57, 84 47, 100 47 C 116 47, 132 57, 132 84 C 132 98, 125 106, 117 110 L 83 110 C 75 106, 68 98, 68 84 Z"
+        fill={BONE_FILL}
+        stroke={BONE_LINE}
+        strokeWidth={3.4}
+        strokeLinejoin="round"
+      />
+      {/* Jaw */}
+      <path
+        d="M 84 107 q 16 12 32 0 l -3 10 q -13 8 -26 0 Z"
+        fill={BONE_SHADE}
+        stroke={BONE_LINE}
+        strokeWidth={3}
+        strokeLinejoin="round"
+      />
+      {/* Eye sockets, with a last cold glint */}
+      <ellipse cx={86} cy={84} rx={9.5} ry={11} fill={BONE_SOCKET} />
+      <ellipse cx={114} cy={84} rx={9.5} ry={11} fill={BONE_SOCKET} />
+      <circle cx={89} cy={81} r={1.7} fill="#8a7f6a" />
+      <circle cx={117} cy={81} r={1.7} fill="#8a7f6a" />
+      {/* Nasal cavity */}
+      <path d="M 100 92 l -5 13 l 10 0 Z" fill={BONE_SOCKET} />
+      {/* A crack, because of course there's a crack */}
+      <path d="M 103 49 l -5 9 l 4 6 l -3 6" fill="none" stroke={BONE_LINE} strokeWidth={2} opacity={0.5} strokeLinecap="round" />
+      {/* Teeth */}
+      <rect x={84} y={110} width={32} height={9} rx={1.5} fill={BONE_FILL} stroke={BONE_LINE} strokeWidth={2} />
+      <path d="M 92 110 v 9 M 100 110 v 9 M 108 110 v 9" stroke={BONE_LINE} strokeWidth={1.8} strokeLinecap="round" />
+
+      {/* Flies. The scene is, formally, over. */}
+      {[0, 1, 2].map((i) => (
+        <motion.g
+          key={i}
+          animate={reduced ? undefined : { rotate: 360 }}
+          transition={{ duration: 2.4 + i * 0.5, repeat: Infinity, ease: "linear" }}
+          style={{ transformBox: "view-box", transformOrigin: "100px 82px" }}
+        >
+          <ellipse cx={100 + 32 - i * 5} cy={78 - i * 7} rx={2.1} ry={1.4} fill="#1c130f" />
+        </motion.g>
+      ))}
     </g>
   );
 }

@@ -50,12 +50,14 @@ export default function Home() {
   const [speechOn, setSpeechOn] = useState(true);
   const [speechSupported, setSpeechSupported] = useState(false);
   const [recentVerdicts, setRecentVerdicts] = useState<string[]>([]);
-  const [protest, setProtest] = useState<string | null>(null);
+  const [curse, setCurse] = useState<string | null>(null);
 
   const character = CHARACTERS[charIndex];
   const damage = damages[charIndex];
-  const protestTimeoutRef = useRef<number | undefined>(undefined);
+  const curseTimeoutRef = useRef<number | undefined>(undefined);
   const speechTimeoutRef = useRef<number | undefined>(undefined);
+  /** Throttles the sworn-aloud outbursts so a flurry of hits doesn't stammer. */
+  const lastCurseSpokeRef = useRef(0);
 
   const shakeApi = useShake({
     armed: shake.armed,
@@ -104,11 +106,27 @@ export default function Home() {
       haptic(HIT_HAPTICS[kind]);
       setImpactSeed((x) => x + 1);
       setImpactForce(force);
-      
-      setProtest(pickOne(character.protests));
-      window.clearTimeout(protestTimeoutRef.current);
-      protestTimeoutRef.current = window.setTimeout(() => setProtest(null), 280);
-      
+
+      // He hits the glass; he swears. It flashes up in a bubble, and on a real
+      // blow he yelps it aloud too — pitched up and quick, a startled curse
+      // rather than the measured verdict. Throttled so a rattle isn't a stammer,
+      // and held back while a verdict has the floor.
+      const yelp = pickOne(character.curses);
+      setCurse(yelp);
+      window.clearTimeout(curseTimeoutRef.current);
+      curseTimeoutRef.current = window.setTimeout(() => setCurse(null), 300);
+
+      if (shake.armed && kind !== "tap" && !audio.muted) {
+        const now = performance.now();
+        if (now - lastCurseSpokeRef.current > 700) {
+          lastCurseSpokeRef.current = now;
+          speech.say(yelp, {
+            pitch: Math.min(character.voice.pitch + 0.2, 2),
+            rate: Math.min(character.voice.rate + 0.25, 2),
+          });
+        }
+      }
+
       setDamages((arr) => arr.map((v, i) => (i === charIndex ? Math.min(v + HIT_DAMAGE[kind] * (0.6 + force * 0.8), MAX_DAMAGE) : v)));
     },
   });
@@ -125,7 +143,7 @@ export default function Home() {
 
   useEffect(
     () => () => {
-      window.clearTimeout(protestTimeoutRef.current);
+      window.clearTimeout(curseTimeoutRef.current);
       window.clearTimeout(speechTimeoutRef.current);
       speech.stop();
     },
@@ -192,7 +210,7 @@ export default function Home() {
     setSwipeDir(dir);
     setCharIndex((i) => (i + dir + CHARACTERS.length) % CHARACTERS.length);
     setVerdict(null);
-    setProtest(null);
+    setCurse(null);
     setMood("idle");
     setShake({ armed: true });
   }, []);
@@ -334,9 +352,9 @@ export default function Home() {
             </svg>
           )}
 
-          {/* Protest speech bubble */}
+          {/* Curse bubble — what he yelps the instant he meets the glass. */}
           <AnimatePresence>
-            {protest && (
+            {curse && (
               <motion.div
                 className="absolute top-8 left-1/2 -translate-x-1/2 z-20"
                 initial={{ opacity: 0, scale: 0.6, y: -10 }}
@@ -345,7 +363,7 @@ export default function Home() {
                 transition={{ duration: 0.18 }}
               >
                 <div className="bg-red-600 text-white px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap shadow-lg">
-                  {protest}
+                  {curse}
                 </div>
               </motion.div>
             )}

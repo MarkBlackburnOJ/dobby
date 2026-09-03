@@ -44,7 +44,8 @@ export interface Character {
   skin: DwarfSkin;
   voice: CharacterVoice;
   verdicts: Verdict[];
-  protests: string[];
+  /** Short, sworn aloud, thrown in a bubble the instant he meets the glass. */
+  curses: string[];
   idleMutters: string[];
 }
 
@@ -324,8 +325,34 @@ export const VERDICTS: Verdict[] = [
   { text: "Yeah. Be the mistake you wish to see in the world.", tone: "chaotic", weight: 2 },
 ];
 
-/** Yelled mid-shake, in a speech bubble. Short. Loud. */
-export const PROTESTS: string[] = [
+/**
+ * Wall-contact outbursts: what he yelps the instant he meets the glass. Short,
+ * loud, and crude — thrown in a bubble and (throttled) sworn aloud. He is being
+ * assaulted in a jar; the language has stopped being polite about it.
+ */
+const DOBBY_CURSES: string[] = [
+  "FUCK!",
+  "OUCH!",
+  "STOP!",
+  "CUNT!",
+  "OW—FUCK",
+  "AH, SHITE",
+  "FUCK OFF—",
+  "BASTARD!",
+  "ME BAWS!",
+  "PRICK!",
+  "GERROFF, FUCKER",
+  "FUCKIN' HELL",
+  "OYA CUNT",
+  "STOP IT—",
+  "BOLLOCKS!",
+  "OW OW—FUCK",
+  "YA WEE SHITE",
+  "JESUS—OW",
+  "NOT THE FUCKIN' HAT",
+  "ARGH, FUCK",
+  "FUCK'S SAKE",
+  "SHIT—OW",
   "OI—",
   "NOT THE BEARD",
   "MY BACK—",
@@ -481,7 +508,10 @@ const GRIMBLE_VERDICTS: Verdict[] = [
   { text: "The veil parted. Behind it, more veil. Typical.", tone: "chaotic" },
   { text: "Consult the worms. They inherit everything.", tone: "chaotic" },
 ];
-const GRIMBLE_PROTESTS: string[] = [
+const GRIMBLE_CURSES: string[] = [
+  "FUCK!", "CUNT!", "OUCH!", "STOP!", "THE FUCK—", "CEASE, PRICK",
+  "OW—DAMN YE", "SHIT!", "GODS—OW", "STOP, FUCKER", "FUCKING VEIL",
+  "ARGH, BASTARD", "CURSE YE—OUCH", "DESIST—CUNT",
   "THE VEIL—", "MY OMENS", "DESIST", "THE DEAD SEE THIS", "CEASE",
   "BLASPHEMY", "MY BONES", "NOT THE RUNES", "I CURSE THEE", "STOP, MORTAL",
   "THE ABYSS—", "AGHHH", "MIND THE CANDLE", "UNHAND ME",
@@ -544,7 +574,10 @@ const BRUSK_VERDICTS: Verdict[] = [
   { text: "The gods say GO. I may have made that up.", tone: "chaotic" },
   { text: "Do it RAW. No warmup. Live a little.", tone: "chaotic" },
 ];
-const BRUSK_PROTESTS: string[] = [
+const BRUSK_CURSES: string[] = [
+  "OW! FUCK!", "CUNT!", "OUCH!", "STOP!", "OI—FUCK", "AH, SHIT",
+  "FUCK, MY GAINS", "OW, PRICK", "STOP, DICKHEAD", "BASTARD!",
+  "FUCK OFF, MEAT", "OW OW—FUCK", "SQUARE UP, CUNT", "FUCK'S SAKE",
   "OW! RUDE!", "MY GAINS", "KNOCK IT OFF", "NOT THE HELM", "I'LL BITE",
   "OI, MEAT!", "SQUARE UP", "MY HORNS!", "GRRAAH", "TOO HARD, PAL",
   "EASY, TITAN", "AGH, ME SPLEEN", "THAT'S A FOUL", "HANDS OFF",
@@ -580,7 +613,7 @@ export const CHARACTERS: Character[] = [
     },
     voice: { pitch: 0.7, rate: 0.95 },
     verdicts: VERDICTS,
-    protests: PROTESTS,
+    curses: DOBBY_CURSES,
     idleMutters: IDLE_MUTTERS,
   },
   {
@@ -602,7 +635,7 @@ export const CHARACTERS: Character[] = [
     },
     voice: { pitch: 0.45, rate: 0.82 },
     verdicts: GRIMBLE_VERDICTS,
-    protests: GRIMBLE_PROTESTS,
+    curses: GRIMBLE_CURSES,
     idleMutters: GRIMBLE_MUTTERS,
   },
   {
@@ -624,7 +657,7 @@ export const CHARACTERS: Character[] = [
     },
     voice: { pitch: 0.6, rate: 1.08 },
     verdicts: BRUSK_VERDICTS,
-    protests: BRUSK_PROTESTS,
+    curses: BRUSK_CURSES,
     idleMutters: BRUSK_MUTTERS,
   },
 ];
