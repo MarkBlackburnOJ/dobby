@@ -11,21 +11,29 @@
 
 const SPEECH_KEY = "dobby:speech";
 
+/** How a single line should sound, coloured to the dwarf saying it. */
+export interface VoiceOpts {
+  pitch?: number;
+  rate?: number;
+  /**
+   * Preferred voice names, best first. Lets each dwarf claim a different voice
+   * when the device offers more than one, instead of three pitches of the same.
+   */
+  prefer?: string[];
+}
+
 /**
- * Voices worth having, best first, matched loosely against name and lang.
- * Daniel is the stock UK male on Apple platforms and is by far the closest
- * thing to a put-upon dwarf that ships by default anywhere.
+ * The good variants modern phones ship — and, on iOS, a free download under
+ * Settings › Accessibility › Spoken Content › Voices. These are the difference
+ * between "robot reading" and "bloke in a jar", so we hunt for them hard.
  */
-const PREFERRED = [
-  "daniel",
-  "arthur",
-  "oliver",
-  "google uk english male",
-  "en-gb",
-];
+const QUALITY = /enhanced|premium|neural|natural/;
+/** Gruff English voices that ship somewhere by default, worth a nudge. */
+const GRUFF = /\b(daniel|arthur|oliver|george|graham|reed|rishi|aaron|rocko)\b/;
 
 class DobbySpeech {
-  private voice: SpeechSynthesisVoice | null = null;
+  /** Best voice found per preference key — one resolution per dwarf, then cached. */
+  private picks = new Map<string, SpeechSynthesisVoice>();
   private primed = false;
   enabled = true;
 
@@ -35,6 +43,14 @@ class DobbySpeech {
       this.enabled = window.localStorage.getItem(SPEECH_KEY) !== "0";
     } catch {
       this.enabled = true;
+    }
+    // getVoices() is empty until the engine loads them and often fills in a beat
+    // later. When the full list lands, drop our picks so the next line resolves
+    // against the good voices rather than whatever was ready first.
+    try {
+      window.speechSynthesis?.addEventListener?.("voiceschanged", () => this.picks.clear());
+    } catch {
+      /* no speechSynthesis on this device — say() will simply no-op */
     }
   }
 
@@ -70,14 +86,38 @@ class DobbySpeech {
     }
   }
 
+  /** Rank a voice for "gruff British man sealed in a jar", boosting the good stuff. */
+  private score(v: SpeechSynthesisVoice, prefer: string[]): number {
+    const name = v.name.toLowerCase();
+    const lang = v.lang.toLowerCase();
+    let s = 0;
+    // This dwarf's own pick wins decisively, so the three stay distinct when the
+    // device has the voices to spare.
+    prefer.forEach((want, i) => {
+      if (name.includes(want)) s += 120 - i * 12;
+    });
+    if (QUALITY.test(name)) s += 55; // enhanced / neural — the whole point
+    if (name.includes("siri")) s += 34;
+    if (name.includes("google uk english male")) s += 36;
+    if (GRUFF.test(name)) s += 28;
+    if (name.includes("male")) s += 12;
+    if (lang.startsWith("en-gb")) s += 22; // British first…
+    else if (lang.startsWith("en")) s += 8; // …then any English
+    if (v.default) s += 2;
+    return s;
+  }
+
   /**
-   * getVoices() is empty until the engine has loaded them, and on some
-   * browsers only populates after the first call, so this is safe (and
-   * expected) to run more than once.
+   * Best available voice for a set of name hints. getVoices() is empty until the
+   * engine loads them (hence the voiceschanged handler above), so this is safe
+   * to run more than once; each preference key resolves once and is then cached.
    */
-  private resolveVoice(): SpeechSynthesisVoice | null {
-    if (this.voice) return this.voice;
+  private resolveVoice(prefer: string[] = []): SpeechSynthesisVoice | null {
     if (!this.supported) return null;
+
+    const key = prefer.join("|");
+    const cached = this.picks.get(key);
+    if (cached) return cached;
 
     const voices = window.speechSynthesis.getVoices();
     if (!voices.length) return null;
@@ -85,18 +125,18 @@ class DobbySpeech {
     const english = voices.filter((v) => v.lang.toLowerCase().startsWith("en"));
     const pool = english.length ? english : voices;
 
-    for (const want of PREFERRED) {
-      const hit = pool.find(
-        (v) => v.name.toLowerCase().includes(want) || v.lang.toLowerCase().includes(want),
-      );
-      if (hit) {
-        this.voice = hit;
-        return hit;
+    let best: SpeechSynthesisVoice | null = null;
+    let bestScore = -Infinity;
+    for (const v of pool) {
+      const sc = this.score(v, prefer);
+      if (sc > bestScore) {
+        bestScore = sc;
+        best = v;
       }
     }
 
-    this.voice = pool.find((v) => v.lang.toLowerCase().startsWith("en-gb")) ?? pool[0];
-    return this.voice;
+    if (best) this.picks.set(key, best);
+    return best;
   }
 
   stop() {
@@ -109,13 +149,13 @@ class DobbySpeech {
   }
 
   /** Deliver a line, coloured to the speaking dwarf. Cancels anything mid-mouth. */
-  say(text: string, voiceOpts?: { pitch?: number; rate?: number }) {
+  say(text: string, voiceOpts?: VoiceOpts) {
     if (!this.supported || !this.enabled) return;
 
     this.stop();
 
     const utter = new SpeechSynthesisUtterance(text);
-    const voice = this.resolveVoice();
+    const voice = this.resolveVoice(voiceOpts?.prefer);
     if (voice) {
       utter.voice = voice;
       utter.lang = voice.lang;

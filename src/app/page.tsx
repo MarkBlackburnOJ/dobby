@@ -121,6 +121,7 @@ export default function Home() {
         if (now - lastCurseSpokeRef.current > 700) {
           lastCurseSpokeRef.current = now;
           speech.say(yelp, {
+            ...character.voice,
             pitch: Math.min(character.voice.pitch + 0.2, 2),
             rate: Math.min(character.voice.rate + 0.25, 2),
           });

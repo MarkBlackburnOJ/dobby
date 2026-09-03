@@ -34,6 +34,12 @@ export interface DwarfSkin {
 export interface CharacterVoice {
   pitch: number;
   rate: number;
+  /**
+   * Preferred device-voice names, best first. When the phone offers more than
+   * one voice, each dwarf claims a different one instead of sharing a single
+   * voice at three pitches. Falls back gracefully when a name isn't installed.
+   */
+  prefer?: string[];
 }
 
 /** One dwarf in the gallery: a look, a voice, and its own bank of lines. */
@@ -611,7 +617,8 @@ export const CHARACTERS: Character[] = [
       brow: "#7a5334",
       accent: "#f7efdd",
     },
-    voice: { pitch: 0.7, rate: 0.95 },
+    // Daniel is the classic put-upon UK male; the rest are graceful fallbacks.
+    voice: { pitch: 0.7, rate: 0.95, prefer: ["daniel", "arthur", "google uk english male"] },
     verdicts: VERDICTS,
     curses: DOBBY_CURSES,
     idleMutters: IDLE_MUTTERS,
@@ -633,7 +640,8 @@ export const CHARACTERS: Character[] = [
       brow: "#4a4038",
       accent: "#e8d9a0",
     },
-    voice: { pitch: 0.45, rate: 0.82 },
+    // A different, deeper English voice than Dobby's, to suit the doom.
+    voice: { pitch: 0.45, rate: 0.82, prefer: ["arthur", "oliver", "george", "google uk english male"] },
     verdicts: GRIMBLE_VERDICTS,
     curses: GRIMBLE_CURSES,
     idleMutters: GRIMBLE_MUTTERS,
@@ -655,7 +663,8 @@ export const CHARACTERS: Character[] = [
       brow: "#6a3d1c",
       accent: "#dfe4ea",
     },
-    voice: { pitch: 0.6, rate: 1.08 },
+    // A brawnier, often American voice — a brute shouldn't sound like the oracle.
+    voice: { pitch: 0.6, rate: 1.08, prefer: ["aaron", "reed", "rocko", "google us english", "fred"] },
     verdicts: BRUSK_VERDICTS,
     curses: BRUSK_CURSES,
     idleMutters: BRUSK_MUTTERS,
