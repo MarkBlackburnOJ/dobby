@@ -24,6 +24,12 @@ export interface VoiceOpts {
    */
   prefer?: string[];
   /**
+   * Which dwarf is speaking (0-based). With a voice plan set, this guarantees a
+   * *different* device voice per dwarf — vital because many network voices ignore
+   * `pitch`, so three pitches of one voice come out identical.
+   */
+  index?: number;
+  /**
    * An AWS Polly voice name (e.g. "Brian"). When set, the line is fetched from
    * the cloud endpoint below — a real, non-robotic voice — and only falls back
    * to the on-device synth if that can't be reached.
@@ -81,6 +87,10 @@ const GRUFF = /\b(daniel|arthur|oliver|george|graham|reed|rishi|aaron|rocko)\b/;
 class DobbySpeech {
   /** Best voice found per preference key — one resolution per dwarf, then cached. */
   private picks = new Map<string, SpeechSynthesisVoice>();
+  /** Each dwarf's voice-name hints, by index — the recipe for distinct voices. */
+  private plan: string[][] = [];
+  /** Resolved distinct voice per dwarf; rebuilt when the voice list changes. */
+  private assignment: (SpeechSynthesisVoice | null)[] | null = null;
   private primed = false;
   /** One reused <audio> for the cloud voice, and whether a gesture has blessed it. */
   private cloudAudio: HTMLAudioElement | null = null;
@@ -102,10 +112,23 @@ class DobbySpeech {
     // later. When the full list lands, drop our picks so the next line resolves
     // against the good voices rather than whatever was ready first.
     try {
-      window.speechSynthesis?.addEventListener?.("voiceschanged", () => this.picks.clear());
+      window.speechSynthesis?.addEventListener?.("voiceschanged", () => {
+        this.picks.clear();
+        this.assignment = null;
+      });
     } catch {
       /* no speechSynthesis on this device — say() will simply no-op */
     }
+  }
+
+  /**
+   * Register the cast: one voice-hint list per dwarf, in order. Lets us hand each
+   * a *different* device voice so they don't collapse to one voice at three
+   * pitches — the usual outcome, since many voices ignore pitch entirely.
+   */
+  setVoicePlan(lists: string[][]) {
+    this.plan = lists;
+    this.assignment = null;
   }
 
   get supported(): boolean {
@@ -138,8 +161,13 @@ class DobbySpeech {
       try {
         const el = this.ensureCloudAudio();
         if (el) {
+          // Play the silent clip UNMUTED (its samples are silence, so nothing is
+          // heard). A *muted* play doesn't count as the gesture that unlocks
+          // later unmuted playback on iOS — that was the bug that kept the cloud
+          // voice from ever sounding.
           el.src = silentClip();
-          el.muted = true;
+          el.muted = false;
+          el.volume = 1;
           const p = el.play();
           if (p) p.then(() => el.pause()).catch(() => {});
         }
@@ -220,36 +248,76 @@ class DobbySpeech {
     return s;
   }
 
-  /**
-   * Best available voice for a set of name hints. getVoices() is empty until the
-   * engine loads them (hence the voiceschanged handler above), so this is safe
-   * to run more than once; each preference key resolves once and is then cached.
-   */
-  private resolveVoice(prefer: string[] = []): SpeechSynthesisVoice | null {
-    if (!this.supported) return null;
+  /** English voices if there are any, else whatever the device has. */
+  private englishPool(voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice[] {
+    const english = voices.filter((v) => v.lang.toLowerCase().startsWith("en"));
+    return english.length ? english : voices;
+  }
 
+  /** Highest-scoring voice for a set of hints, cached per hint key. */
+  private bestFor(prefer: string[], voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice | null {
     const key = prefer.join("|");
     const cached = this.picks.get(key);
     if (cached) return cached;
 
-    const voices = window.speechSynthesis.getVoices();
-    if (!voices.length) return null;
-
-    const english = voices.filter((v) => v.lang.toLowerCase().startsWith("en"));
-    const pool = english.length ? english : voices;
-
     let best: SpeechSynthesisVoice | null = null;
     let bestScore = -Infinity;
-    for (const v of pool) {
+    for (const v of this.englishPool(voices)) {
       const sc = this.score(v, prefer);
       if (sc > bestScore) {
         bestScore = sc;
         best = v;
       }
     }
-
     if (best) this.picks.set(key, best);
     return best;
+  }
+
+  /**
+   * Assign each dwarf its own voice: greedily give every plan entry its best
+   * *unclaimed* voice, so no two share one while the device has voices to spare.
+   * Only when voices run out does a later dwarf fall back to a shared best.
+   */
+  private ensureAssignment(voices: SpeechSynthesisVoice[]): (SpeechSynthesisVoice | null)[] {
+    if (this.assignment) return this.assignment;
+    const pool = this.englishPool(voices);
+    const used = new Set<string>();
+    const id = (v: SpeechSynthesisVoice) => v.voiceURI || v.name;
+
+    this.assignment = this.plan.map((prefer) => {
+      let best: SpeechSynthesisVoice | null = null;
+      let bestScore = -Infinity;
+      for (const v of pool) {
+        if (used.has(id(v))) continue;
+        const sc = this.score(v, prefer);
+        if (sc > bestScore) {
+          bestScore = sc;
+          best = v;
+        }
+      }
+      if (best) used.add(id(best));
+      else best = this.bestFor(prefer, voices); // fewer voices than dwarves — share
+      return best;
+    });
+    return this.assignment;
+  }
+
+  /**
+   * The voice for one line. With a plan and an index, returns this dwarf's own
+   * distinct voice; otherwise the single best match for the hints. getVoices() is
+   * empty until the engine warms up (hence the voiceschanged handler), so this is
+   * safe to call repeatedly.
+   */
+  private resolveVoice(prefer: string[] = [], index?: number): SpeechSynthesisVoice | null {
+    if (!this.supported) return null;
+    const voices = window.speechSynthesis.getVoices();
+    if (!voices.length) return null;
+
+    if (index != null && index >= 0 && index < this.plan.length) {
+      const picked = this.ensureAssignment(voices)[index];
+      if (picked) return picked;
+    }
+    return this.bestFor(prefer, voices);
   }
 
   stop() {
@@ -287,7 +355,7 @@ class DobbySpeech {
     if (!this.supported) return;
 
     const utter = new SpeechSynthesisUtterance(text);
-    const voice = this.resolveVoice(voiceOpts?.prefer);
+    const voice = this.resolveVoice(voiceOpts?.prefer, voiceOpts?.index);
     if (voice) {
       utter.voice = voice;
       utter.lang = voice.lang;

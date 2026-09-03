@@ -89,7 +89,7 @@ export default function Home() {
       // Let the sting land first — he talks over its tail, not through it.
       window.clearTimeout(speechTimeoutRef.current);
       speechTimeoutRef.current = window.setTimeout(() => {
-        if (!audio.muted) speech.say(next.text, character.voice);
+        if (!audio.muted) speech.say(next.text, { ...character.voice, index: charIndex });
       }, 420);
       
       setShake({ armed: false });
@@ -123,6 +123,7 @@ export default function Home() {
           lastCurseSpokeRef.current = now;
           speech.say(yelp, {
             prefer: character.voice.prefer,
+            index: charIndex,
             pitch: Math.min(character.voice.pitch + 0.2, 2),
             rate: Math.min(character.voice.rate + 0.25, 2),
           });
@@ -141,6 +142,9 @@ export default function Home() {
     setMuted(audio.muted);
     setSpeechOn(speech.enabled);
     setSpeechSupported(speech.supported);
+    // Tell speech the cast, in order, so each dwarf claims a distinct device
+    // voice instead of all three collapsing onto one voice at three pitches.
+    speech.setVoicePlan(CHARACTERS.map((c) => c.voice.prefer ?? []));
   }, []);
 
   useEffect(
