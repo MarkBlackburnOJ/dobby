@@ -110,7 +110,8 @@ export default function Home() {
       // He hits the glass; he swears. It flashes up in a bubble, and on a real
       // blow he yelps it aloud too — pitched up and quick, a startled curse
       // rather than the measured verdict. Throttled so a rattle isn't a stammer,
-      // and held back while a verdict has the floor.
+      // and held back while a verdict has the floor. Kept on-device (no `cloud`)
+      // so the yelp is instant — a network round-trip would land it after the hit.
       const yelp = pickOne(character.curses);
       setCurse(yelp);
       window.clearTimeout(curseTimeoutRef.current);
@@ -121,7 +122,7 @@ export default function Home() {
         if (now - lastCurseSpokeRef.current > 700) {
           lastCurseSpokeRef.current = now;
           speech.say(yelp, {
-            ...character.voice,
+            prefer: character.voice.prefer,
             pitch: Math.min(character.voice.pitch + 0.2, 2),
             rate: Math.min(character.voice.rate + 0.25, 2),
           });

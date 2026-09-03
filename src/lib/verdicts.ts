@@ -40,6 +40,11 @@ export interface CharacterVoice {
    * voice at three pitches. Falls back gracefully when a name isn't installed.
    */
   prefer?: string[];
+  /**
+   * AWS Polly voice name for the cloud voice (verdicts only). A real, non-robotic
+   * voice per dwarf; if the endpoint can't be reached it falls back to `prefer`.
+   */
+  cloud?: string;
 }
 
 /** One dwarf in the gallery: a look, a voice, and its own bank of lines. */
@@ -617,8 +622,9 @@ export const CHARACTERS: Character[] = [
       brow: "#7a5334",
       accent: "#f7efdd",
     },
-    // Daniel is the classic put-upon UK male; the rest are graceful fallbacks.
-    voice: { pitch: 0.7, rate: 0.95, prefer: ["daniel", "arthur", "google uk english male"] },
+    // Cloud: Brian, the definitive British-male TTS. Daniel & co. are the
+    // on-device fallback if the endpoint is unreachable.
+    voice: { pitch: 0.7, rate: 0.95, cloud: "Brian", prefer: ["daniel", "arthur", "google uk english male"] },
     verdicts: VERDICTS,
     curses: DOBBY_CURSES,
     idleMutters: IDLE_MUTTERS,
@@ -640,8 +646,8 @@ export const CHARACTERS: Character[] = [
       brow: "#4a4038",
       accent: "#e8d9a0",
     },
-    // A different, deeper English voice than Dobby's, to suit the doom.
-    voice: { pitch: 0.45, rate: 0.82, prefer: ["arthur", "oliver", "george", "google uk english male"] },
+    // Cloud: Geraint (Welsh male) — a stranger, graver lilt for the oracle.
+    voice: { pitch: 0.45, rate: 0.82, cloud: "Geraint", prefer: ["arthur", "oliver", "george", "google uk english male"] },
     verdicts: GRIMBLE_VERDICTS,
     curses: GRIMBLE_CURSES,
     idleMutters: GRIMBLE_MUTTERS,
@@ -663,8 +669,8 @@ export const CHARACTERS: Character[] = [
       brow: "#6a3d1c",
       accent: "#dfe4ea",
     },
-    // A brawnier, often American voice — a brute shouldn't sound like the oracle.
-    voice: { pitch: 0.6, rate: 1.08, prefer: ["aaron", "reed", "rocko", "google us english", "fred"] },
+    // Cloud: Matthew (US male) — brawnier and blunter, a brute not an oracle.
+    voice: { pitch: 0.6, rate: 1.08, cloud: "Matthew", prefer: ["aaron", "reed", "rocko", "google us english", "fred"] },
     verdicts: BRUSK_VERDICTS,
     curses: BRUSK_CURSES,
     idleMutters: BRUSK_MUTTERS,
